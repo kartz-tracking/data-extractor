@@ -29,6 +29,7 @@
 // Cloudflare Pages this list can stay empty.
 const ALLOWED_ORIGINS = [
   'http://localhost:8731',
+  'https://kartz-tracking.github.io',
 ];
 
 const UPSTREAM = 'https://generativelanguage.googleapis.com/v1beta/models';

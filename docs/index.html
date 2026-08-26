@@ -859,7 +859,7 @@ function render(roster) {
   refreshRosterList();
   $('tbl').innerHTML =
     '<thead><tr><th>Rank</th><th>Name in video</th><th>Game Name</th><th>Alliance</th>'
-    + '<th>Kartz Points</th><th></th></tr></thead><tbody>'
+    + '<th>Kartz Points</th><th>Frames</th><th></th></tr></thead><tbody>'
     + rows.map((r, i) => `<tr class="${r.skipped ? '' : r.match ? 'ok' : 'new'}"${
         r.skipped ? ' style="opacity:.45"' : ''}>
         <td>${r.skipped ? '—' : r.rank}</td>

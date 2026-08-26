@@ -79,7 +79,6 @@ details summary{cursor:pointer;font-size:13px;color:var(--muted)}
 <body>
 <div class="wrap">
 <h1>Kartz Extractor</h1>
-<p class="sub">Screen recording &rarr; paste-ready rows. Runs in the browser on any device. Your video never leaves the phone; only a handful of cropped frames go to the model.</p>
 
 <section>
   <h2>1 &middot; Setup <span id="setupState" class="pill p-new">not configured</span></h2>
@@ -88,7 +87,7 @@ details summary{cursor:pointer;font-size:13px;color:var(--muted)}
     <input id="sheet" spellcheck="false" placeholder="https://docs.google.com/spreadsheets/d/…">
     <button class="ghost" id="pull" style="flex:0 0 auto;min-width:110px;width:auto">Pull roster</button>
   </div>
-  <label for="skip">Filter rows &mdash; players in these alliances are left out</label>
+  <label for="skip">Filter rows</label>
   <input id="skip" spellcheck="false" placeholder="z3.?, z1.Transferred">
   <details style="margin-top:8px">
     <summary>Paste the roster by hand instead</summary>
@@ -132,13 +131,7 @@ details summary{cursor:pointer;font-size:13px;color:var(--muted)}
     <button class="ghost" id="csv">Download CSV</button>
     <button class="ghost" id="learn">Remember my fixes</button>
   </div>
-  <p class="note">Anything you resolve by hand, then save with <em>Remember my fixes</em>, is matched automatically from the next run onward.</p>
 </section>
-
-<details style="margin-top:14px">
-  <summary>How it works &amp; costs</summary>
-  <p class="note">The browser decodes the video with a plain <code>&lt;video&gt;</code> element and samples frames onto a canvas, keeping only frames where the list actually moved &mdash; typically 15&ndash;30 frames from a 50-second recording, about 400&nbsp;KB total instead of a 250&nbsp;MB upload. Those frames go to a vision model that reads rank, name and points, and also writes each stylised name out in plain letters. That plain form is fuzzy-matched against your roster, so <code>&#x1D4DF;&#x1D4F8;&#x1D4F6;</code>-style tags resolve without anyone retyping them. Roughly a fifth of a cent per recording on Gemini Flash, and inside the free tier in normal use.</p>
-</details>
 </div>
 
 <script>
@@ -165,9 +158,6 @@ function loadSetup() {
   $('skip').value    = store.get('skip')     ?? 'z3.?, z1.Transferred';
   rosterCache        = store.get('roster')   || null;
   $('datestr').value = store.get('datestr')  || new Date().toLocaleDateString('en-CA');
-  $('keyNote').textContent =
-    'The Google key lives on this site\u2019s Worker, not in your browser. Nothing to set up '
-    + 'and nothing to leak.';
   refreshRosterList(); refreshState();
 }
 function refreshState() {

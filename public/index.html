@@ -1,0 +1,1036 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kartz Extractor</title>
+<style>
+:root{
+  --bg:#f4f5f8; --panel:#fff; --ink:#15181f; --muted:#666e7d; --line:#dfe3ea;
+  --accent:#3b5bdb; --ok:#2b8a3e; --warn:#c26a00; --bad:#c92a2a;
+  --okbg:#e9f7ed; --warnbg:#fff4e2; --badbg:#fdecec;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#12141a; --panel:#1a1d25; --ink:#e8eaef; --muted:#98a0b0; --line:#2b303c;
+  --accent:#748ffc; --ok:#69db7c; --warn:#ffc078; --bad:#ff8787;
+  --okbg:#17301e; --warnbg:#33270f; --badbg:#361a1a;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding:16px;padding-bottom:64px}
+.wrap{max-width:960px;margin:0 auto}
+h1{font-size:19px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:13px;margin:0 0 18px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:14px 16px;margin-bottom:12px}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);
+  margin:0 0 10px;font-weight:600}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input,select,textarea,button{font:inherit;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%}
+textarea{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;resize:vertical}
+button{background:var(--accent);color:#fff;border:0;font-weight:600;cursor:pointer}
+button:disabled{opacity:.45;cursor:default}
+button.ghost{background:transparent;color:var(--accent);border:1px solid var(--line);font-weight:500}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1;min-width:150px}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:26px 16px;text-align:center;
+  color:var(--muted);cursor:pointer}
+.drop.on{border-color:var(--accent);color:var(--accent)}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:10px}
+.bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
+.log{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted);
+  white-space:pre-wrap;margin-top:8px}
+.strip{display:flex;gap:5px;overflow-x:auto;margin-top:10px;padding-bottom:4px}
+.strip img{height:88px;border-radius:5px;border:1px solid var(--line);flex:none}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:600px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr.ok td:nth-child(3){color:var(--ok)}
+tr.new{background:var(--warnbg)}
+.pill{font-size:11px;padding:2px 7px;border-radius:20px;font-weight:600;white-space:nowrap}
+.p-ok{background:var(--okbg);color:var(--ok)}
+.p-new{background:var(--warnbg);color:var(--warn)}
+.p-bad{background:var(--badbg);color:var(--bad)}
+.pickbox{padding:5px 8px;font-size:13px;min-width:170px}
+.menu{position:fixed;z-index:50;background:var(--panel);border:1px solid var(--line);
+  border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.16);max-height:210px;overflow-y:auto;
+  min-width:200px;padding:4px 0}
+.menu div{padding:6px 11px;font-size:13px;cursor:pointer;display:flex;
+  justify-content:space-between;gap:12px;white-space:nowrap}
+.menu div:hover,.menu div.on{background:var(--accent);color:#fff}
+.menu div span{opacity:.55;font-size:11px}
+.menu .none{color:var(--muted);cursor:default}
+.menu .newopt{font-weight:600}
+.menu hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+td select{padding:4px 6px;font-size:12px;min-width:150px}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+.warnbox{background:var(--warnbg);color:var(--warn);border-radius:8px;padding:9px 12px;
+  font-size:13px;margin-top:10px}
+.okbox{background:var(--okbg);color:var(--ok);border-radius:8px;padding:9px 12px;
+  font-size:13px;margin-top:10px}
+details summary{cursor:pointer;font-size:13px;color:var(--muted)}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Kartz Extractor</h1>
+<p class="sub">Screen recording &rarr; paste-ready rows. Runs in the browser on any device. Your video never leaves the phone; only a handful of cropped frames go to the model.</p>
+
+<section>
+  <h2>1 &middot; Setup <span id="setupState" class="pill p-new">not configured</span></h2>
+  <label for="sheet">Roster sheet &mdash; link to the Alliance Rosters tab</label>
+  <div class="row" style="flex-wrap:nowrap">
+    <input id="sheet" spellcheck="false" placeholder="https://docs.google.com/spreadsheets/d/…">
+    <button class="ghost" id="pull" style="flex:0 0 auto;min-width:110px;width:auto">Pull roster</button>
+  </div>
+  <label for="skip">Filter rows &mdash; players in these alliances are left out</label>
+  <input id="skip" spellcheck="false" placeholder="z3.?, z1.Transferred">
+  <details style="margin-top:8px">
+    <summary>Paste the roster by hand instead</summary>
+    <textarea id="roster" rows="4" spellcheck="false" placeholder="Kodiak&#9;Kodiak&#9;698N"></textarea>
+  </details>
+  <div class="row" style="margin-top:10px">
+    <button class="ghost" id="save">Save setup</button>
+  </div>
+  <p class="note" id="keyNote"></p>
+</section>
+
+<section>
+  <h2>2 &middot; Recording</h2>
+  <div class="drop" id="drop">
+    <strong>Choose or drop the screen recording</strong><br>
+    <span id="fileName">on a phone this opens your camera roll</span>
+  </div>
+  <input id="file" type="file" accept="video/*" class="hide">
+  <div class="row" style="margin-top:12px">
+    <div>
+      <label for="datestr">Date</label>
+      <input id="datestr" type="date">
+    </div>
+    <div>
+      <label for="sens">Frames to send <span id="sensVal" class="note"></span></label>
+      <input id="sens" type="range" min="8" max="72" step="4" value="48">
+    </div>
+  </div>
+  <button id="go" style="margin-top:12px" disabled>Extract</button>
+  <div class="bar"><i id="prog"></i></div>
+  <div class="log" id="log"></div>
+  <div class="strip" id="strip"></div>
+</section>
+
+<section id="out" class="hide">
+  <h2>3 &middot; Results</h2>
+  <div id="verdict"></div>
+  <div class="tablewrap"><table id="tbl"></table></div>
+  <div class="row" style="margin-top:12px">
+    <button id="copy">Copy for sheet</button>
+    <button class="ghost" id="csv">Download CSV</button>
+    <button class="ghost" id="learn">Remember my fixes</button>
+  </div>
+  <p class="note">Anything you resolve by hand, then save with <em>Remember my fixes</em>, is matched automatically from the next run onward.</p>
+</section>
+
+<details style="margin-top:14px">
+  <summary>How it works &amp; costs</summary>
+  <p class="note">The browser decodes the video with a plain <code>&lt;video&gt;</code> element and samples frames onto a canvas, keeping only frames where the list actually moved &mdash; typically 15&ndash;30 frames from a 50-second recording, about 400&nbsp;KB total instead of a 250&nbsp;MB upload. Those frames go to a vision model that reads rank, name and points, and also writes each stylised name out in plain letters. That plain form is fuzzy-matched against your roster, so <code>&#x1D4DF;&#x1D4F8;&#x1D4F6;</code>-style tags resolve without anyone retyping them. Roughly a fifth of a cent per recording on Gemini Flash, and inside the free tier in normal use.</p>
+</details>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+// One configuration. The model call goes to /api on this same deployment, where the Worker
+// holds the Google key — nothing about the model or the credentials is exposed here, and
+// there is nothing for anyone to configure or get wrong.
+const MODEL = 'gemini-3.5-flash-lite';
+const FALLBACKS = [];        // one model, deliberately: a run either works or says why
+const API_BASE = '/api';
+const BATCH = 8;
+
+/* ---------------- persistence ---------------- */
+const store = {
+  get: k => { try { return JSON.parse(localStorage.getItem('kartz.' + k)); } catch { return null; } },
+  set: (k, v) => localStorage.setItem('kartz.' + k, JSON.stringify(v)),
+};
+
+function loadSetup() {
+  $('roster').value  = store.get('rosterRaw')|| '';
+  $('sheet').value   = store.get('sheet')    || '';
+  $('skip').value    = store.get('skip')     ?? 'z3.?, z1.Transferred';
+  rosterCache        = store.get('roster')   || null;
+  $('datestr').value = store.get('datestr')  || new Date().toLocaleDateString('en-CA');
+  $('keyNote').textContent =
+    'The Google key lives on this site\u2019s Worker, not in your browser. Nothing to set up '
+    + 'and nothing to leak.';
+  refreshRosterList(); refreshState();
+}
+function refreshState() {
+  const names = currentRoster().length;
+  $('setupState').className = 'pill ' + (names ? 'p-ok' : 'p-new');
+  $('setupState').textContent = names ? names + ' roster names' : 'not configured';
+  $('go').disabled = !(names && videoFile);
+}
+$('save').onclick = () => {
+  ['sheet','skip','datestr'].forEach(k => store.set(k, $(k).value));
+  store.set('rosterRaw', $('roster').value);
+  refreshState(); log('setup saved');
+};
+$('roster').addEventListener('input', refreshState);
+
+$('pull').onclick = async () => {
+  const link = $('sheet').value.trim();
+  $('pull').disabled = true;
+  const was = $('pull').textContent; $('pull').textContent = 'Pulling…';
+  try {
+    rosterCache = await pullRoster(link);
+    store.set('sheet', link); store.set('skip', $('skip').value);
+    store.set('roster', rosterCache);            // cached so a later run works offline
+    log(`roster: ${rosterCache.active.length} names`
+        + (rosterCache.skipped.length
+           ? ` (${rosterCache.skipped.length} skipped: ${skipList().join(', ')})` : ''));
+  } catch (e) { log('✗ ' + e.message); }
+  $('pull').textContent = was; $('pull').disabled = false;
+  refreshState();
+};
+
+/* ---------------- roster ---------------- */
+// Google serves any link-readable sheet as CSV from /export, with permissive CORS, so the
+// page can read the live roster itself. Pasting was per-person busywork that also went
+// stale the moment someone was added; this cannot drift.
+function sheetCsvUrl(link) {
+  const id = (link.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/) || [])[1];
+  if (!id) throw new Error('That does not look like a Google Sheets link.');
+  const gid = (link.match(/[#&?]gid=(\d+)/) || [])[1] || '0';
+  return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`;
+}
+// Minimal RFC4180 reader — roster names legitimately contain commas and newlines.
+function parseCsv(text) {
+  const rows = [[]]; let cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"' && text[i+1] === '"') { cell += '"'; i++; }
+      else if (c === '"') q = false;
+      else cell += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { rows[rows.length-1].push(cell); cell = ''; }
+    else if (c === '\n') { rows[rows.length-1].push(cell); cell = ''; rows.push([]); }
+    else if (c !== '\r') cell += c;
+  }
+  rows[rows.length-1].push(cell);
+  return rows.filter(r => r.some(x => x.trim()));
+}
+async function pullRoster(link) {
+  const r = await fetch(sheetCsvUrl(link));
+  if (!r.ok) throw new Error(r.status === 401 || r.status === 403
+    ? 'The sheet is not readable by link. In Google Sheets: Share → General access → Anyone with the link → Viewer.'
+    : 'Could not read the sheet (' + r.status + ').');
+  const text = await r.text();
+  if (/^\s*<(!doctype|html)/i.test(text)) throw new Error('Google returned a sign-in page — the sheet is not link-readable.');
+  const rows = parseCsv(text);
+  const all = rows.map(c => ({ search: (c[0]||'').trim(), ingame: (c[1]||c[0]||'').trim(),
+                               alliance: (c[2]||'').trim() }))
+                  .filter(r => r.search && !/^search\s*name/i.test(r.search));
+  if (!all.length) throw new Error('No roster rows found in that tab.');
+  // Transferred and unknown-alliance players are dropped here, at the source, so they are
+  // never candidates for a match. They are kept to one side rather than thrown away: if
+  // one of them still shows up in the video we want to recognise and drop that row
+  // deliberately, not leave it sitting in the review list every single month.
+  const skip = skipList();
+  const active  = all.filter(r => !skip.includes(r.alliance.toLowerCase()));
+  const skipped = all.filter(r =>  skip.includes(r.alliance.toLowerCase()));
+  return { active, skipped };
+}
+function skipList() {
+  return ($('skip').value || 'z3.?, z1.Transferred')
+    .split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+}
+
+/* ---------------- matching ---------------- */
+let rosterCache = null;            // { active, skipped }
+// Narrowing to the alliance being recorded cuts the candidate list from a few hundred to
+// well under two, which both shortens the prompt and removes the chance of a name being
+// matched to a player from an alliance that was never in this event.
+// One roster, never narrowed. Filtering by alliance was tried and removed: a Kartz list
+// mixes alliances, and restricting one 148-player recording to 698W dropped 27 players who
+// were plainly correct, taking the match rate from 95% to 76%.
+function currentRoster() {
+  return (rosterCache && rosterCache.active && rosterCache.active.length)
+    ? rosterCache.active : parseRoster($('roster').value);
+}
+const fullRoster = currentRoster;
+const skippedRoster = () => (rosterCache && rosterCache.skipped) || [];
+function parseRoster(text) {
+  return text.split(/\r?\n/).map(l => l.split(/\t|,/).map(s => s.trim()))
+             .filter(c => c[0]).map(c => ({ search: c[0], ingame: c[1] || c[0], alliance: c[2] || '' }))
+             .filter(r => !/^search\s*name/i.test(r.search));
+}
+// stylised-unicode tags collapse onto plain ascii; the model also gives us a plain
+// reading of its own, so this only has to catch what slips through.
+const FOLD = { 'Ꭱ':'R','Ꭲ':'T','Ꮮ':'L','Ꮯ':'C','Ꮋ':'H','Ꭺ':'A','Ꭼ':'E','Ꮲ':'P','Ꮪ':'S','Ꮶ':'K',
+  'Ꮇ':'M','Ꮃ':'W','Ꭰ':'D','Ꮖ':'I','Ꮷ':'J','Ø':'O','Ð':'D','Þ':'P','Ł':'L','ß':'B','€':'E',
+  'Δ':'A','Ć':'C','Ħ':'H','Ƥ':'P','Ñ':'N','Ɐ':'A',
+  'Ŋ':'N','ŋ':'n','Ų':'U','ų':'u','Ɓ':'B','ɓ':'b','Į':'I','į':'i','Ə':'E','Ɔ':'O',
+  'Ʌ':'A','Ƨ':'S','Ƽ':'S','Ʈ':'T','Ɗ':'D','Ɖ':'D','Ƙ':'K','Ɲ':'N','Ɍ':'R','Ɏ':'Y' };
+function fold(s) {
+  if (!s) return '';
+  s = s.normalize('NFKD').split('').map(c => FOLD[c] || c).join('');
+  return s.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+function sim(a, b) {                       // levenshtein similarity
+  if (a === b) return 1;
+  if (!a.length || !b.length) return 0;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++)
+      cur[j] = Math.min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+    prev = cur;
+  }
+  return 1 - prev[b.length] / Math.max(a.length, b.length);
+}
+const CONF = 0.82;
+function buildIndex(roster) {
+  const ix = [];
+  for (const r of roster) for (const v of new Set([fold(r.search), fold(r.ingame)]))
+    if (v) ix.push({ k: v, r });
+  return ix;
+}
+function resolve(name, plain, ix, aliases) {
+  for (const cand of [fold(name), fold(plain)]) {
+    if (!cand) continue;
+    if (aliases[cand]) {
+      const al = aliases[cand];
+      const nm = typeof al === 'string' ? al : al.name;          // older entries were plain strings
+      const alliance = typeof al === 'string' ? '' : (al.alliance || '');
+      const hit = ix.find(e => e.k === fold(nm));
+      return hit ? { r: hit.r, score: 1 }
+                 : { r: { search: nm, ingame: nm, alliance }, score: 1 };
+    }
+    const exact = ix.find(e => e.k === cand);
+    if (exact) return { r: exact.r, score: 1 };
+  }
+  let best = null, score = 0;
+  for (const cand of [fold(name), fold(plain)]) {
+    if (!cand) continue;
+    for (const e of ix) { const s = sim(cand, e.k); if (s > score) { score = s; best = e.r; } }
+  }
+  return score >= CONF ? { r: best, score } : { r: null, score, near: best };
+}
+
+/* ---------------- frame extraction ---------------- */
+let videoFile = null;
+const log = m => { $('log').textContent = m; };
+const setProg = p => { $('prog').style.width = (p * 100) + '%'; };
+
+$('drop').onclick = () => $('file').click();
+$('file').onchange = e => pickFile(e.target.files[0]);
+['dragover','dragenter'].forEach(ev => $('drop').addEventListener(ev, e => {
+  e.preventDefault(); $('drop').classList.add('on'); }));
+['dragleave','drop'].forEach(ev => $('drop').addEventListener(ev, e => {
+  e.preventDefault(); $('drop').classList.remove('on'); }));
+$('drop').addEventListener('drop', e => pickFile(e.dataTransfer.files[0]));
+function pickFile(f) {
+  if (!f) return;
+  videoFile = f;
+  $('fileName').textContent = f.name + '  ·  ' + (f.size / 1e6).toFixed(0) + ' MB';
+  refreshState();
+}
+$('sens').oninput = () => {
+  const n = +$('sens').value;
+  // roughly seven rows fit on screen, and consecutive frames need to overlap
+  $('sensVal').textContent = `${n} — covers about ${Math.round(n * 3.6)} players`;
+};
+$('sens').oninput();
+
+const once = (el, ev) => new Promise(res => el.addEventListener(ev, res, { once: true }));
+
+// A leaderboard of near-identical cards defeats any whole-frame difference metric —
+// scrolled or not, the picture looks about the same. So instead measure how far the
+// list has actually travelled: reduce each frame to a vertical brightness profile of
+// the text column, then slide consecutive profiles against each other to recover the
+// scroll offset in pixels. Keep a frame each time the list has moved far enough that
+// the next screenful still overlaps the last kept one by roughly a third.
+const TOP_MASK = 0.10, BOT_MASK = 0.84;   // ignore the fixed title bar and the pinned own-rank card
+
+// Where the list actually is, found rather than assumed. The first attempt used fixed
+// fractions of the frame, which held only for the phone they were measured on: a recording
+// from a taller device showed the Ranking dialog as a window inset in the game screen, and
+// the same fractions then kept the surrounding chrome and the pinned own-rank row.
+//
+// The reliable signal is motion. Over a scrolling recording the list is the only thing that
+// changes; the title bar, the surrounding game UI and the pinned "your rank" card all sit
+// still. So accumulate per-cell change across the sampling pass and take the bounding box
+// of whatever moved. That adapts to any phone and any layout, and it excludes the pinned
+// card for free — precisely because it does not move.
+const GW = 64, GH = 128;              // resolution of the motion map
+function motionMap(cx, W, H) {
+  const tmp = motionMap.cv || (motionMap.cv =
+    Object.assign(document.createElement('canvas'), { width: GW, height: GH }));
+  const tc = motionMap.cx || (motionMap.cx = tmp.getContext('2d', { willReadFrequently: true }));
+  tc.drawImage(cx.canvas, 0, 0, W, H, 0, 0, GW, GH);
+  const d = tc.getImageData(0, 0, GW, GH).data;
+  const g = new Float32Array(GW * GH);
+  for (let i = 0; i < g.length; i++)
+    g[i] = (d[i*4] * .299 + d[i*4+1] * .587 + d[i*4+2] * .114) / 255;
+  return g;
+}
+// Bounding box of the cells that moved, as fractions of the frame. Null when the result is
+// implausible, in which case the caller sends the frame uncropped rather than guessing.
+function movingRegion(accum) {
+  let max = 0;
+  for (const v of accum) if (v > max) max = v;
+  if (max <= 1e-6) return null;
+  const thresh = max * 0.18;
+  let x0 = GW, x1 = -1, y0 = GH, y1 = -1, hits = 0;
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+    if (accum[y*GW + x] < thresh) continue;
+    hits++;
+    if (x < x0) x0 = x; if (x > x1) x1 = x;
+    if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  if (hits < GW * GH * 0.02 || x1 < 0) return null;
+  const pad = 0.006;
+  const box = { x0: Math.max(0, x0/GW - pad), x1: Math.min(1, (x1+1)/GW + pad),
+                y0: Math.max(0, y0/GH - pad), y1: Math.min(1, (y1+1)/GH + pad) };
+  if ((box.x1 - box.x0) < 0.25 || (box.y1 - box.y0) < 0.25) return null;
+  return box;
+}
+function cropFrame(src, W, H, box) {
+  if (!box) return src;
+  const sx = Math.round(W * box.x0), sy = Math.round(H * box.y0);
+  const sw = Math.round(W * (box.x1 - box.x0)), sh = Math.round(H * (box.y1 - box.y0));
+  const out = cropFrame.cv || (cropFrame.cv = document.createElement('canvas'));
+  out.width = sw; out.height = sh;
+  out.getContext('2d').drawImage(src, sx, sy, sw, sh, 0, 0, sw, sh);
+  return out;
+}
+
+// How much the list moved between two frames. Deliberately only a *rate* of change,
+// never a displacement: the leaderboard is a run of near-identical cards, so matching
+// one frame against another is genuinely ambiguous — several offsets, one card pitch
+// apart, fit equally well. Measuring "is it moving" instead of "how far" sidesteps that
+// entirely, and integrating it over the recording is all the pacing we actually need.
+const MW = 96, MH = 96;
+function motionGrid(cx, W, H) {
+  const yA = Math.round(H * TOP_MASK), yB = Math.round(H * BOT_MASK);
+  const tmp = motionGrid.cv || (motionGrid.cv =
+    Object.assign(document.createElement('canvas'), { width: MW, height: MH }));
+  const tc = motionGrid.cx || (motionGrid.cx = tmp.getContext('2d', { willReadFrequently: true }));
+  tc.drawImage(cx.canvas, 0, yA, W, yB - yA, 0, 0, MW, MH);
+  const d = tc.getImageData(0, 0, MW, MH).data;
+  const g = new Float32Array(MW * MH);
+  for (let i = 0; i < g.length; i++)
+    g[i] = (d[i*4] * .299 + d[i*4+1] * .587 + d[i*4+2] * .114) / 255;
+  return g;
+}
+const gridDiff = (a, b) => {
+  let s = 0; for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i]);
+  return s / a.length;
+};
+
+async function openVideo(file) {
+  const video = document.createElement('video');
+  video.preload = 'auto'; video.muted = true; video.playsInline = true;
+  video.src = URL.createObjectURL(file);
+  await once(video, 'loadedmetadata');
+  // iOS refuses to paint into a canvas until the pipeline has decoded at least once
+  try { await video.play(); video.pause(); } catch {}
+  return video;
+}
+const seek = async (video, t) => {
+  video.currentTime = t;
+  await Promise.race([once(video, 'seeked'), new Promise(r => setTimeout(r, 1500))]);
+};
+
+// Two passes. The first is cheap — no JPEG encoding — and just builds a motion profile,
+// which tells us how this particular recording was scrolled. The second spends the frame
+// budget evenly across accumulated motion, so a slow careful scroll and a fast flick both
+// come out with the same coverage and the same cost.
+let lastCropBox = null;
+async function extractFrames(file, budget, onProg) {
+  const video = await openVideo(file);
+  const dur = video.duration;
+  // Keep the recording's own resolution. 560 was chosen when the worry was payload size,
+  // but token cost turns out to be near enough flat per image, so the downscale bought
+  // nothing and cost the fine detail in stylised names: at 560 the glyphs "ŊŲƁĮ" came back
+  // as "MB" and "DJ", while the same row read at the phone's native width resolves to Nubi.
+  const W = Math.min(video.videoWidth || 720, 1080);
+  const H = Math.round(W * video.videoHeight / video.videoWidth);
+  const cv = Object.assign(document.createElement('canvas'), { width: W, height: H });
+  const cx = cv.getContext('2d', { willReadFrequently: true });
+  const step = 0.25;
+
+  const times = [], motion = [];
+  const accum = new Float32Array(GW * GH);     // per-cell change, for locating the list
+  let prev = null, prevMap = null, total = 0;
+  for (let t = 0; t < dur; t += step) {
+    await seek(video, Math.min(t, dur - 0.05));
+    cx.drawImage(video, 0, 0, W, H);
+    const g = motionGrid(cx, W, H);
+    const d = prev ? gridDiff(prev, g) : 0;
+    prev = g; total += d;
+    const map = motionMap(cx, W, H);
+    if (prevMap) for (let i = 0; i < accum.length; i++) accum[i] += Math.abs(map[i] - prevMap[i]);
+    prevMap = map;
+    times.push(t); motion.push(total);
+    onProg(0.6 * t / dur, 0);
+  }
+  const box = movingRegion(accum);      // always: it removes the pinned own-rank card
+  lastCropBox = box;
+
+  // pick timestamps at equal increments of accumulated motion
+  const picks = [times[0]];
+  if (total > 1e-6) {
+    const gap = total / (budget - 1);
+    let want = gap;
+    for (let i = 1; i < times.length; i++)
+      if (motion[i] >= want && picks.length < budget - 1) { picks.push(times[i]); want = motion[i] + gap; }
+  }
+  const last = times[times.length - 1];
+  if (picks[picks.length - 1] !== last) picks.push(last);
+
+  const frames = [];
+  for (let i = 0; i < picks.length; i++) {
+    await seek(video, Math.min(picks[i], dur - 0.05));
+    cx.drawImage(video, 0, 0, W, H);
+    const send = cropFrame(cv, W, H, box);
+    frames.push(send.toDataURL('image/jpeg', 0.82).split(',')[1]);
+    onProg(0.6 + 0.4 * (i + 1) / picks.length, frames.length);
+  }
+  URL.revokeObjectURL(video.src);
+  return frames;
+}
+
+/* ---------------- vision model ---------------- */
+// The model is not being asked to transcribe an unknown name — it is being asked which of
+// a few hundred known players a row belongs to. Handing it the roster turns a reading
+// problem into a recognition one, and that single change took usable names from about 76%
+// to 99% on a 153-player recording. The list costs roughly 1,300 tokens.
+function buildPrompt(forVideo) {
+  const roster = currentRoster();
+  // Give both forms. Column B holds the name as it is actually drawn in the game — the
+  // stylised one the model is looking at — and for about a fifth of the roster it differs
+  // from the name the sheet uses. Some of those pairs no string comparison could ever
+  // bridge: "ERank" is Aalonsoj ALT, "TRD" is AcE, and one player renders as glyphs that
+  // normalise to an empty string. Listing the mapping is the only thing that resolves them.
+  const names = roster.map(r => {
+    const a = (r.search || '').trim(), b = (r.ingame || '').trim();
+    if (!a) return '';
+    // Compare the literal strings, not the folded ones. Folding is deliberately aggressive
+    // — it is what lets "ŊŲƁĮ" reduce to "nubi" — but that is exactly the pair the model
+    // most needs to be shown. Judging sameness after folding hid every case the mapping
+    // exists to solve.
+    return (b && b !== a) ? `${a} = ${b}` : a;
+  }).filter(Boolean);
+  const src = forVideo
+    ? 'This is a screen recording of a mobile game leaderboard called "Ranking".'
+    : 'These are frames from a screen recording of a mobile game leaderboard called "Ranking".';
+  const scope = forVideo ? 'in the whole video' : 'across ALL the images';
+  const once = forVideo
+    ? '- Report every player exactly once, in rank order. Do not skip rows and do not stop early.'
+    : '- The same player appears in several frames. List every sighting; do not deduplicate.';
+  return `${src}
+Each row has a rank number (a gold, silver or bronze medal for ranks 1, 2 and 3), a player
+name, and a line reading "Contribution (Pt): <number>".
+
+The players are drawn from the known roster below. Names are often written in stylised
+unicode, decorated with emoji, or simply hard to read — but nearly every one of them is one
+of these people. Recognise which roster entry a row belongs to rather than transcribing the
+glyphs literally.
+
+Known players (${names.length}). Where someone is written differently in the game, both forms
+are given as "sheet name = name as drawn in game"; always answer with the sheet name.
+This list is reference material — never report a word from it as a row you saw.
+${names.join(', ')}
+
+Return every row you can read ${scope} as a single JSON array, one object per row:
+{"rank": <int or null>, "roster_name": "<a name copied exactly from the ROSTER, or null>", "seen": "<the name as actually drawn on screen>", "points": <int>}
+
+Rules:
+- "roster_name" MUST be copied character-for-character from the list above, or be null if
+  you are genuinely confident this player is not on it. Never invent a spelling.
+- Prefer a known player whenever the drawn name plausibly corresponds to one, allowing for
+  stylised glyphs, emoji, accents and lookalike characters.
+- "seen" is the raw on-screen name, so a person can check the match.
+- For ranks 1 to 3 the number is a medal graphic; infer 1, 2 or 3 from its colour.
+- Read ONLY rows inside the "Ranking" panel. A recording often opens on another screen, or
+  passes over a different leaderboard on the way; ignore anything that is not the Ranking
+  list, however clearly you can read it.
+- Ignore the highlighted card pinned at the very bottom; it repeats the viewer's own row.
+${once}
+- If a row is cut off at an edge and cannot be read fully, skip it.
+- Output raw JSON only. No markdown fence, no commentary.`;
+}
+
+async function callModel(frames) {
+  const batches = [];
+  for (let i = 0; i < frames.length; i += BATCH) batches.push(frames.slice(i, i + BATCH));
+  let done = 0;
+  const switched = new Set();
+  const one = async b => {
+    const rows = await withFallback(m => callProxy(b, m, API_BASE),
+                                    modelChain(), m => switched.add(m), false);
+    done++; setProg(0.5 + 0.5 * done / batches.length);
+    log(`read ${done} of ${batches.length} batches…`
+        + (switched.size ? `  (fell back to ${[...switched].join(', ')})` : ''));
+    return rows;
+  };
+  return (await Promise.all(batches.map(one))).flat();
+}
+
+const modelChain = () => [MODEL, ...FALLBACKS.filter(m => m !== MODEL)];
+const isBusy = e => /\b(429|500|502|503|504)\b/.test(e.message);
+
+// How long the server asked us to wait, in seconds, or 0 if it did not say. Groq answers
+// with a retry-after header and often names the delay in the message body too.
+function waitHint(e) {
+  const h = (e.message.match(/retry-after ([\d.]+)/) || [])[1];
+  if (h) return Math.min(90, Math.ceil(+h));
+  const inline = (e.message.match(/try again in ([\d.]+)(m?s)/i) || []);
+  if (inline[1]) return Math.min(90, Math.ceil(+inline[1] * (inline[2] === 'ms' ? 0.001 : 1)));
+  return 0;
+}
+// A daily allowance will not clear however long we sit here; a per-minute one will.
+const isDailyCap = e => /\b429\b/.test(e.message) && /per ?day|PerDay|quota/i.test(e.message);
+
+async function withFallback(call, chain, note, paced) {
+  let last;
+  for (let mi = 0; mi < chain.length; mi++) {
+    const model = chain[mi];
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const rows = await call(model);
+        if (mi > 0) note(model);
+        return rows;
+      } catch (e) {
+        last = e;
+        if (!isBusy(e)) throw e;                       // a real error: surface it
+        if (isDailyCap(e)) break;                      // spent for the day: next model
+        // A provider metered per minute is waited out rather than abandoned — moving to
+        // another model would not help, because the budget is shared across the account.
+        const hinted = waitHint(e);
+        if (paced || hinted) {
+          const secs = hinted || 20;
+          log(`rate limited — waiting ${secs}s…`);
+          await new Promise(r => setTimeout(r, secs * 1000 + 500));
+          continue;
+        }
+        if (/\b(429|503)\b/.test(e.message)) break;    // saturated alias: next model
+        await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+      }
+    }
+  }
+  throw last;
+}
+
+// Same request the direct Gemini path sends, aimed at the team Worker instead. No key
+// travels with it; the Worker holds that and adds it upstream.
+async function callProxy(batch, model, base) {
+  const r = await fetch(base + '/' + encodeURIComponent(model), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [
+        ...batch.map(d => ({ inline_data: { mime_type: 'image/jpeg', data: d } })),
+        { text: buildPrompt(false) }] }],
+      generationConfig: {
+        temperature: 0, maxOutputTokens: 32768,
+        thinkingConfig: { thinkingLevel: 'low' },
+        // Ask the API to enforce the shape rather than hoping the model returns clean JSON.
+        // Everything is a string: models will happily emit "1,234" or "#4" for a number and
+        // then the whole response is rejected, so take text and convert here.
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'ARRAY',
+          items: {
+            type: 'OBJECT',
+            properties: {
+              rank:        { type: 'STRING' },
+              roster_name: { type: 'STRING' },
+              seen:        { type: 'STRING' },
+              points:      { type: 'STRING' },
+            },
+            required: ['rank', 'seen', 'points'],
+          },
+        },
+      }
+    })
+  });
+  if (!r.ok) throw new Error(r.status + ': ' + (await r.text()).slice(0, 300));
+  const j = await r.json();
+  return parseJSON(j.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '');
+}
+
+// Parse row objects individually rather than requiring one well-formed array. A long
+// batch can be cut off mid-object when it runs into the output limit, and demanding
+// valid JSON throws away the fifty good rows that arrived before the cut. Frames overlap
+// heavily, so a salvaged tail costs nothing; a hard failure costs the whole batch.
+function parseJSON(text) {
+  const objs = text.match(/\{[^{}]*\}/g) || [];
+  const rows = [];
+  for (const o of objs) {
+    try {
+      const r = JSON.parse(o);
+      if (r.seen !== undefined || r.roster_name !== undefined) {
+        r.name  = r.seen || r.roster_name || '';
+        r.plain = r.roster_name || r.seen || '';
+      }
+      // the schema returns strings; "1,234" and "#4" both turn up
+      const num = v => {
+        if (typeof v === 'number') return v;
+        const m = String(v ?? '').replace(/[,\s]/g, '').match(/-?\d+/);
+        return m ? +m[0] : null;
+      };
+      r.points = num(r.points);
+      r.rank   = num(r.rank);
+      if (typeof r.points === 'number' && (r.name || r.plain)) rows.push(r);
+    } catch { /* a half-written object at the cut: skip it */ }
+  }
+  // "I found nothing here" is a legitimate answer, not a failure: a batch can hold only
+  // frames from before the Ranking panel was open, and since the model is now told to
+  // ignore other screens it correctly returns nothing for those. Treat a well-formed empty
+  // answer as empty, and only complain when the reply had no JSON in it at all.
+  // A bare "[]" is the same legitimate answer as a list of nulls: these frames held no
+  // Ranking rows. Only complain when the reply contains no JSON array at all, which is what
+  // a refusal or a truncated preamble looks like.
+  if (!rows.length && !objs.length && !/\[\s*\]/.test(text) && !/^\s*\[/.test(text.trim()))
+    throw new Error('model returned no readable rows:\n' + text.slice(0, 200));
+  return rows;
+}
+
+// Rows carried in from another screen. The opening seconds of a recording often show a
+// different leaderboard whose scores are an order of magnitude larger, and raising the frame
+// resolution made those legible enough to be read too. Everything in one Kartz list sits in
+// the same range, so a reading far outside the bulk did not come from this list.
+function dropForeignRows(sightings) {
+  const pts = sightings.map(s => s && s.points).filter(n => typeof n === 'number' && n > 0)
+                       .sort((a, b) => a - b);
+  if (pts.length < 8) return sightings;
+  const median = pts[pts.length >> 1];
+  const ceiling = median * 8;
+  // A zero or negative score is never a real Kartz row either — the phone's own UI leaks in
+  // at the start of a recording ("Not Playing" from the music widget turned up as a player).
+  const kept = sightings.filter(s => typeof s?.points === 'number'
+                                  && s.points > 0 && s.points <= ceiling);
+  const lost = sightings.length - kept.length;
+  if (lost) log(`ignored ${lost} row(s) from another screen (scores far outside the list)`);
+  return kept;
+}
+
+/* ---------------- consolidate ---------------- */
+// a player's score holds steady across frames; their name does not. so sightings that
+// share a score and read similarly are the same person, however badly the tag rendered.
+// Group by rank, then vote on everything else.
+//
+// Clustering by name was the earlier approach and it has a specific failure: a name read
+// three different ways becomes three players, so a 153-player list can come back as 158
+// rows, each seen once, with no majority to correct anything. Rank does not have that
+// problem — it is a plain numeral the model reads reliably — so it makes a far better key.
+// Voting still happens, but within a rank rather than within a spelling, which is what lets
+// a good reading outvote a bad one instead of splitting away from it.
+function consolidate(sightings, frameCount) {
+  const byRank = new Map();
+  const orphans = [];
+  for (const s of sightings) {
+    if (!s || typeof s.points !== 'number') continue;
+    if (typeof s.rank === 'number' && s.rank > 0) {
+      if (!byRank.has(s.rank)) byRank.set(s.rank, []);
+      byRank.get(s.rank).push(s);
+    } else orphans.push(s);          // rank unreadable — fall back to matching on name
+  }
+  // a row whose rank never came through still belongs somewhere; attach it to the rank
+  // whose score and name it agrees with, and otherwise let it stand on its own
+  for (const o of orphans) {
+    let target = null;
+    for (const [rank, g] of byRank) {
+      if (mode(g.map(x => x.points)) !== o.points) continue;
+      if (sim(fold(o.plain || o.name), fold(g[0].plain || g[0].name)) >= 0.6) { target = rank; break; }
+    }
+    if (target) byRank.get(target).push(o);
+    else { const k = -(byRank.size + 1); byRank.set(k, [o]); }
+  }
+  const out = [];
+  for (const [rank, g] of byRank) {
+    const names = g.map(x => x.roster_name).filter(Boolean);
+    out.push({
+      points: mode(g.map(x => x.points)),
+      name:   mode(g.map(x => x.name)),
+      plain:  mode(g.map(x => x.plain || x.name)),
+      pick_:  names.length ? mode(names) : '',
+      rank:   rank > 0 ? rank : null,
+      seenRank: rank > 0 ? rank : 0,
+      seen:   g.length,
+    });
+  }
+  return out.sort((a, b) => b.points - a.points || (a.seenRank || 9999) - (b.seenRank || 9999));
+}
+
+const mode = arr => {
+  const c = new Map(); let best = null, n = 0;
+  for (const v of arr) { const k = c.get(v) || 0; c.set(v, k + 1); if (k + 1 > n) { n = k + 1; best = v; } }
+  return best;
+};
+
+/* ---------------- run ---------------- */
+let rows = [], index = [], skipIndex = [], aliases = {};
+$('go').onclick = async () => {
+  $('go').disabled = true; $('out').classList.add('hide');
+  try {
+    const roster = currentRoster();
+    if (!roster.length) throw new Error('No roster loaded — paste the sheet link and press Pull roster.');
+    index = buildIndex(roster);
+    skipIndex = buildIndex(skippedRoster());
+    aliases = store.get('aliases') || {};
+
+    log('decoding video…'); setProg(0);
+    const frames = await extractFrames(videoFile, +$('sens').value,
+      (p, n) => { setProg(p * 0.5); log(`sampling video — ${n} frames kept`); });
+    if (!frames.length) throw new Error('no frames captured');
+    $('strip').innerHTML = frames.slice(0, 24)
+      .map(f => `<img src="data:image/jpeg;base64,${f}">`).join('');
+    log(`${frames.length} frames (${(frames.join('').length * 0.75 / 1024 | 0)} KB) — sending…`);
+    let sightings = await callModel(frames);
+    const frameCount = frames.length;
+    // A roster_name the model returned is only worth anything if it is genuinely in the
+    // roster; models will occasionally produce a plausible-looking name that is not on the
+    // list, and that is exactly the case a human needs to see.
+    const byName = new Map();
+    for (const e of index) byName.set(e.k, e.r);
+    sightings = dropForeignRows(sightings);
+    const base = consolidate(sightings, frameCount);
+    rows = base.map(r => {
+      const claimed = r.pick_ ? byName.get(fold(r.pick_)) : null;
+      if (claimed) return { ...r, match: claimed, score: 1, pick: claimed.search, claimed: true };
+      const m = resolve(r.name, r.plain, index, aliases);
+      if (m.r) return { ...r, match: m.r, score: m.score, pick: m.r.search };
+      const sk = skipIndex.length ? resolve(r.name, r.plain, skipIndex, {}) : { r: null };
+      if (sk.r) return { ...r, match: null, skipped: sk.r, score: sk.score, pick: '\u0000drop' };
+      return { ...r, match: null, score: m.score, near: m.near, pick: '' };
+    });
+    // Two rows resolving to one player means at least one of them is wrong, and neither the
+    // model nor the fuzzy match can tell which. Surface both rather than silently emitting a
+    // duplicate the sheet would then double-count.
+    const claims = new Map();
+    for (const r of rows) {
+      if (!r.match || r.skipped) continue;
+      const k = fold(r.match.search);
+      if (!claims.has(k)) claims.set(k, []);
+      claims.get(k).push(r);
+    }
+    for (const [, group] of claims) {
+      if (group.length < 2) continue;
+      for (const r of group) {
+        r.near = r.match;          // keep it as the suggestion before clearing the match
+        r.contested = group.length;
+        r.match = null; r.pick = ''; r.score = 1;
+      }
+    }
+    let n = 0;
+    for (const r of rows) r.rank = r.skipped ? null : ++n;
+    render(roster);
+    log(`done — ${sightings.length} readings → ${rows.length} players`);
+    setProg(1);
+  } catch (e) {
+    const m = e.message;
+    log(/\b429\b/.test(m) && /quota|per day/i.test(m)
+      ? '✗ Daily free-tier quota used up (Gemini allows 20 requests a day). Each run costs '
+        + Math.ceil(+$('sens').value / 8) + ' of them. Wait for the reset, lower "Frames to send", '
+        + 'or enable billing on the key.'
+      : '✗ ' + m);
+  }
+  $('go').disabled = false;
+};
+
+function render(roster) {
+  const dropped = rows.filter(r => r.skipped).length;
+  const need = rows.filter(r => !r.match && !r.skipped).length;
+  // The model reports the rank it saw; we renumber by score. Where the two disagree,
+  // a row between them was probably never captured — worth saying out loud, because a
+  // silently short list is the one failure the sheet cannot catch downstream.
+  const seenRanks = rows.map(r => r.seenRank).filter(n => typeof n === 'number' && n > 0);
+  const top = Math.max(0, ...seenRanks);
+  const gap = top > rows.length;   // excluded rows still count as captured
+  $('verdict').innerHTML =
+    `<div class="${need || gap ? 'warnbox' : 'okbox'}">${rows.length} players &middot; `
+    + `${rows.length - need - dropped} matched to the roster`
+    + (dropped ? ` &middot; ${dropped} excluded (${esc($('skip').value.trim())})` : '')
+    + (need ? ` &middot; <strong>${need} to confirm below</strong>` : '')
+    + `</div>`
+    + (gap ? `<div class="warnbox">The game showed a rank as high as ${top} but only `
+        + `${rows.length} rows came through — ${top - rows.length} row(s) were probably `
+        + `never captured. Raise <em>Frames to send</em> and run it again.</div>` : '');
+  refreshRosterList();
+  $('tbl').innerHTML =
+    '<thead><tr><th>Rank</th><th>Name in video</th><th>Game Name</th><th>Alliance</th>'
+    + '<th>Kartz Points</th><th>Frames</th><th></th></tr></thead><tbody>'
+    + rows.map((r, i) => `<tr class="${r.skipped ? '' : r.match ? 'ok' : 'new'}"${
+        r.skipped ? ' style="opacity:.45"' : ''}>
+        <td>${r.skipped ? '—' : r.rank}</td>
+        <td>${esc(r.name)}</td>
+        <td>${r.skipped ? esc(r.skipped.search)
+            : r.match ? esc(r.match.search)
+            : `<div style="display:flex;gap:6px;align-items:center">
+                 <input data-i="${i}" class="pickbox" placeholder="type to search…"
+                        value="${esc(r.pick === '\u0000drop' ? '' : r.pick)}" spellcheck="false">
+                 <button class="ghost rowdrop" data-i="${i}" title="not a real row"
+                         style="flex:0 0 auto;width:auto;padding:4px 9px">✕</button>
+               </div>`
+              + (r.near ? `<div class="note" style="margin:2px 0 0">${r.contested
+                    ? `${esc(r.near.search)} — claimed by ${r.contested} rows, pick one`
+                    : `closest: ${esc(r.near.search)} (${(r.score*100|0)}%)`}</div>` : '')}</td>
+        <td>${r.skipped ? esc(r.skipped.alliance)
+            : r.match ? esc(r.match.alliance)
+            : `<select class="allipick" data-i="${i}">
+                 ${['', '698W', '698S', '698N', '698C']
+                    .map(a => `<option value="${a}"${a === (r.alliancePick || '') ? ' selected' : ''}>`
+                            + `${a || '—'}</option>`).join('')}
+               </select>`}</td>
+        <td>${r.points}</td>
+        <td>${r.seen}</td>
+        <td>${r.skipped ? '<span class="pill p-new">excluded</span>'
+            : r.match ? `<span class="pill p-ok">${r.score === 1 ? 'exact' : (r.score*100|0)+'%'}</span>`
+            : r.contested ? '<span class="pill p-bad">contested</span>'
+                      : '<span class="pill p-new">confirm</span>'}</td>
+      </tr>`).join('') + '</tbody>';
+  $('tbl').querySelectorAll('.pickbox').forEach(inp => wirePicker(inp, v => {
+    rows[+inp.dataset.i].pick = v;
+    inp.closest('tr').style.opacity = 1;
+  }));
+  // A row that could not be matched is usually somebody new. Recording which alliance they
+  // belong to here means the answer is kept with the name, so the pair can go into the sheet
+  // and the player is recognised from the next run on.
+  $('tbl').querySelectorAll('.allipick').forEach(sel => sel.onchange = () => {
+    rows[+sel.dataset.i].alliancePick = sel.value;
+  });
+  $('tbl').querySelectorAll('.rowdrop').forEach(b => b.onclick = () => {
+    const r = rows[+b.dataset.i];
+    r.pick = r.pick === '\u0000drop' ? '' : '\u0000drop';
+    b.closest('tr').style.opacity = r.pick === '\u0000drop' ? .4 : 1;
+    const box = b.closest('tr').querySelector('.pickbox');
+    if (box && r.pick === '\u0000drop') box.value = '';
+  });
+  $('out').classList.remove('hide');
+}
+// A search box with a list we control the size of.
+//
+// A native <select> of several hundred players opens a list as tall as the page and cannot
+// be typed into; a <datalist> can be typed into but the browser decides how tall its popup
+// is and ignores CSS. So the list is drawn here: filtered as you type, capped at a couple of
+// hundred pixels, and scrolled inside itself.
+//
+// It is positioned fixed rather than absolute because the results table scrolls
+// horizontally, and anything absolutely positioned inside it gets clipped at the edge.
+let menuEl = null;
+function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; } }
+document.addEventListener('mousedown', e => {
+  if (menuEl && !menuEl.contains(e.target) && !e.target.classList.contains('pickbox')) closeMenu();
+});
+window.addEventListener('scroll', closeMenu, true);
+
+function openMenu(input, onPick) {
+  closeMenu();
+  const q = fold(input.value);
+  const all = fullRoster();
+  const hits = (q ? all.filter(r => fold(r.search).includes(q) || fold(r.ingame).includes(q))
+                  : all).slice(0, 60);
+  menuEl = document.createElement('div');
+  menuEl.className = 'menu';
+  // "New player" sits at the top, separated from the roster, because a row that reaches
+  // this box is often somebody who simply is not on the list yet, and hunting for the
+  // absence of a name is harder than being offered it.
+  const newLabel = input.value.trim()
+    ? `New player — keep “${esc(input.value.trim())}”` : 'New player';
+  menuEl.innerHTML =
+    `<div data-v="\u0001new" class="newopt">${newLabel}</div><hr>`
+    + (hits.length
+        ? hits.map(r => `<div data-v="${esc(r.search)}">`
+            + `${esc(r.search)}<span>${esc(r.alliance || '')}</span></div>`).join('')
+        : '<div class="none">no roster name matches that</div>');
+  document.body.appendChild(menuEl);
+  const first = menuEl.querySelector('div[data-v]:not(.newopt)');
+  if (first) first.classList.add('on');
+  const b = input.getBoundingClientRect();
+  menuEl.style.left = b.left + 'px';
+  menuEl.style.width = Math.max(b.width, 200) + 'px';
+  // flip above when there is not room below
+  const below = window.innerHeight - b.bottom;
+  if (below < 220 && b.top > below) menuEl.style.bottom = (window.innerHeight - b.top + 4) + 'px';
+  else menuEl.style.top = (b.bottom + 4) + 'px';
+  menuEl.querySelectorAll('div[data-v]').forEach(d => d.onmousedown = ev => {
+    ev.preventDefault();
+    if (d.dataset.v === '\u0001new') { onPick(input.value.trim()); closeMenu(); input.focus(); return; }
+    input.value = d.dataset.v; onPick(d.dataset.v); closeMenu();
+  });
+}
+
+function wirePicker(input, onPick) {
+  input.autocomplete = 'off';
+  input.oninput = () => { onPick(input.value.trim()); openMenu(input, onPick); };
+  input.onfocus  = () => openMenu(input, onPick);
+  input.onkeydown = e => {
+    if (!menuEl) return;
+    const items = [...menuEl.querySelectorAll('div[data-v]')];
+    const at = items.findIndex(d => d.classList.contains('on'));
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!items.length) return;
+      const next = e.key === 'ArrowDown' ? Math.min(at + 1, items.length - 1) : Math.max(at - 1, 0);
+      items.forEach(d => d.classList.remove('on'));
+      items[next].classList.add('on');
+      items[next].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter' && at >= 0) {
+      e.preventDefault();
+      if (items[at].dataset.v === '\u0001new') { onPick(input.value.trim()); closeMenu(); return; }
+      input.value = items[at].dataset.v; onPick(input.value); closeMenu();
+    } else if (e.key === 'Escape') closeMenu();
+  };
+}
+
+function refreshRosterList() { closeMenu(); }
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+
+/* ---------------- output ---------------- */
+// An unresolved row still has to land in the sheet as something a lookup can find, so
+// fall back to the plain reading rather than the decorated original.
+const outRows = () => rows.filter(r => r.pick !== '\u0000drop' && !r.skipped)
+  .map((r, i) => [$('datestr').value || '', i + 1, r.pick || r.plain || r.name, r.points]);
+const OUT_HEADERS = ['Date', 'Rank', 'Game Name', 'Kartz Points'];
+$('copy').onclick = async () => {
+  const tsv = outRows().map(r => r.join('\t')).join('\n');
+  try { await navigator.clipboard.writeText(tsv); log('copied — paste into the sheet'); }
+  catch { prompt('Copy these rows:', tsv); }
+};
+$('csv').onclick = () => {
+  const csv = OUT_HEADERS.join(',') + '\n'
+    + outRows().map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
+    download: `kartz-${$('datestr').value || 'export'}.csv` });
+  a.click(); URL.revokeObjectURL(a.href);
+};
+$('learn').onclick = () => {
+  const a = store.get('aliases') || {};
+  let n = 0;
+  for (const r of rows) {
+    if (r.match || !r.pick || r.pick === '\u0000drop') continue;
+    // stored as an object so an alliance can ride along; older entries were a bare string
+    a[fold(r.plain || r.name)] = { name: r.pick, alliance: r.alliancePick || '' };
+    n++;
+  }
+  store.set('aliases', a);
+  log(n ? `remembered ${n} name${n>1?'s':''} — they will match automatically next time`
+        : 'nothing new to remember');
+};
+
+
+
+loadSetup();
+</script>
+</body>
+</html>

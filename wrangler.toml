@@ -6,7 +6,7 @@ compatibility_date = "2026-01-01"
 # served straight from it; everything else — /api/* — runs worker.js. Same origin, so
 # Workers AI's missing CORS headers never come into it.
 [assets]
-directory = "./public"
+directory = "./docs"
 binding = "ASSETS"
 
 # Lets the Worker call Cloudflare's own models as env.AI, with no token in the browser.

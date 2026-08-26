@@ -30,6 +30,7 @@
 const ALLOWED_ORIGINS = [
   'http://localhost:8731',
   'https://kartz-tracking.github.io',
+  'https://kartz-tracking.github.io/data-extractor/',
 ];
 
 const UPSTREAM = 'https://generativelanguage.googleapis.com/v1beta/models';

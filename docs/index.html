@@ -68,12 +68,7 @@ tr.new{background:var(--warnbg)}
 .pencil{background:none;border:0;color:var(--muted);cursor:pointer;font-size:13px;
   padding:0 4px;width:auto;line-height:1;opacity:.5}
 .pencil:hover{opacity:1;color:var(--accent)}
-button.ghost.skipbox{display:flex;flex-wrap:wrap;gap:6px 14px;padding:9px 11px;border:1px solid var(--line);
-  border-radius:8px;background:var(--panel);min-height:38px;align-items:center}
-.skipbox label{display:inline-flex;align-items:center;gap:6px;margin:0;font-size:13px;
-  color:var(--ink);cursor:pointer;text-transform:none;letter-spacing:0}
-.skipbox input{width:auto;margin:0}
-.tickok{color:var(--ok)}
+button.ghost.tickok{color:var(--ok)}
 /* Selects inherit width:100% from the base control rule, which made these stretch across a
    column sized for the header rather than for "698S". Sized to their content instead, with a
    floor so the four codes line up, and a ceiling so the one row carrying "z1.Transferred"
@@ -103,26 +98,15 @@ details summary{cursor:pointer;font-size:13px;color:var(--muted)}
 <body>
 <div class="wrap">
 <h1>Kartz Extractor</h1>
-<p class="sub">Screen recording &rarr; paste-ready rows. Runs in the browser on any device. Your video never leaves the phone; only a handful of cropped frames go to the model.
-  <span id="build" class="note" style="white-space:nowrap"></span></p>
 
 <section>
   <h2>1 &middot; Setup <span id="setupState" class="pill p-new">not configured</span></h2>
-  <!-- The roster tab is fixed in the code rather than typed in on every device. It has never
-       been a per-person choice: everyone pulls the same sheet, and a link box only invites a
-       mistyped one. -->
-  <div class="row" style="flex-wrap:nowrap">
-    <button class="ghost" id="pull" style="flex:0 0 auto;min-width:130px;width:auto">Pull roster</button>
-    <span id="sheetNote" class="note" style="align-self:center"></span>
-  </div>
-  <label>Filter rows &mdash; alliances left out of matching</label>
-  <div id="skipbox" class="skipbox note">Pull the roster to see which alliances it holds.</div>
-  <details style="margin-top:8px">
-    <summary>Paste the roster by hand instead</summary>
-    <textarea id="roster" rows="4" spellcheck="false" placeholder="Kodiak&#9;Kodiak&#9;698N"></textarea>
-  </details>
-  <div class="row" style="margin-top:10px">
-    <button class="ghost" id="save">Save setup</button>
+  <!-- The roster tab is fixed in the code rather than typed in on every device: everyone pulls
+       the same sheet, and a link box only invites a mistyped one. Hand-pasting went with it —
+       it existed for when there was no sheet to pull from, and there always is one now. So the
+       whole of setup is one list and one button. -->
+  <div class="row">
+    <button class="ghost" id="pull">Pull / Update Alliance Roster</button>
   </div>
   <p class="note" id="keyNote"></p>
 </section>
@@ -167,13 +151,7 @@ details summary{cursor:pointer;font-size:13px;color:var(--muted)}
     <button class="ghost" id="csv">Download CSV</button>
     <button class="ghost" id="learn">Remember my fixes</button>
   </div>
-  <p class="note">Anything you resolve by hand, then save with <em>Remember my fixes</em>, is matched automatically from the next run onward.</p>
 </section>
-
-<details style="margin-top:14px">
-  <summary>How it works &amp; costs</summary>
-  <p class="note">The browser decodes the video with a plain <code>&lt;video&gt;</code> element and samples frames onto a canvas, keeping only frames where the list actually moved &mdash; typically 15&ndash;30 frames from a 50-second recording, about 400&nbsp;KB total instead of a 250&nbsp;MB upload. Those frames go to a vision model that reads rank, name and points, and also writes each stylised name out in plain letters. That plain form is fuzzy-matched against your roster, so <code>&#x1D4DF;&#x1D4F8;&#x1D4F6;</code>-style tags resolve without anyone retyping them. Roughly a fifth of a cent per recording on Gemini Flash, and inside the free tier in normal use.</p>
-</details>
 </div>
 
 <script>
@@ -184,7 +162,7 @@ const $ = id => document.getElementById(id);
 // Shown on the page. Several people run this from their own phones and a browser can sit on
 // an open tab for days, so "it is still happening" and "it is fixed" are easy to say about
 // different builds. Bump it with any change worth telling apart from the one before.
-const BUILD = '2026-08-28a-gh';
+const BUILD = '2026-08-28c-gh';
 const MODEL = 'gemini-3.5-flash-lite';
 const FALLBACKS = [];        // one model, deliberately: a run either works or says why
 // This copy is served from GitHub Pages, not from the Worker, so its requests are
@@ -220,7 +198,6 @@ const ROSTER_SHEET =
 // The four alliances the sheet is actually organised around. Anything else in its Alliance
 // column — z3.?, z1.Transferred, a stray 698E — is a candidate for filtering out.
 const MAIN_ALLIANCES = ['698W', '698S', '698N', '698C'];
-const DEFAULT_SKIP = ['z3.?', 'z1.transferred'];
 
 const store = {
   get: k => { try { return JSON.parse(localStorage.getItem('kartz.' + k)); } catch { return null; } },
@@ -228,38 +205,20 @@ const store = {
 };
 
 function loadSetup() {
-  $('roster').value  = store.get('rosterRaw')|| '';
-  skipSel            = store.get('skipSel');           // null until you choose
   rosterCache        = store.get('roster')   || null;
   // A roster cached by an earlier version was stored already split. Put it back together, so
   // the filter can be changed without pulling again.
   if (rosterCache && !rosterCache.all)
     rosterCache = { all: [...(rosterCache.active || []), ...(rosterCache.skipped || [])] };
-  $('sheetNote').textContent = 'Alliance Rosters tab';
   $('datestr').value = store.get('datestr')  || new Date().toLocaleDateString('en-CA');
-  $('keyNote').textContent =
-    'The Google key lives on this site\u2019s Worker, not in your browser. Nothing to set up '
-    + 'and nothing to leak.';
-  refreshSkipBox(); refreshRosterList(); refreshState();
+  refreshRosterList(); refreshState();
 }
 function refreshState() {
   const names = currentRoster().length;
-  const total = (rosterCache && rosterCache.all && rosterCache.all.length) || 0;
   $('setupState').className = 'pill ' + (names ? 'p-ok' : 'p-new');
-  // Both numbers, because one of them on its own reads like a fault: the sheet holds 858 rows
-  // and the badge said 695, which looks exactly like a pull that stopped early rather than a
-  // filter doing its job.
-  $('setupState').textContent = !names ? 'not configured'
-    : total && total !== names ? `${names} of ${total} roster names`
-    : `${names} roster names`;
+  $('setupState').textContent = names ? `${names} roster names` : 'not configured';
   $('go').disabled = !(names && videoFile);
 }
-$('save').onclick = () => {
-  ['datestr'].forEach(k => store.set(k, $(k).value));
-  store.set('rosterRaw', $('roster').value);
-  refreshState(); log('setup saved'); flash($('save'), 'Saved ✓');
-};
-$('roster').addEventListener('input', refreshState);
 
 $('pull').onclick = async () => {
   $('pull').disabled = true;
@@ -268,14 +227,14 @@ $('pull').onclick = async () => {
   try {
     rosterCache = await pullRoster(ROSTER_SHEET);
     store.set('roster', rosterCache);            // cached so a later run works offline
-    const kept = currentRoster().length, out = skippedRoster().length;
-    log(`roster: ${rosterCache.all.length} rows — ${kept} to match against`
-        + (out ? `, ${out} filtered out (${skipList().join(', ')})` : ''));
+    log(`roster: ${rosterCache.all.length} names`);
     ok = true;
   } catch (e) { log('✗ ' + e.message); }
   $('pull').textContent = was; $('pull').disabled = false;
-  refreshSkipBox();
-  if (ok) flash($('pull'), `${rosterCache.all.length} rows ✓`);
+  if (ok) {
+    store.set('datestr', $('datestr').value);   // the only other thing setup ever saved
+    flash($('pull'), `${rosterCache.all.length} rows ✓`);
+  }
   refreshState();
 };
 
@@ -323,50 +282,11 @@ async function pullRoster(link) {
   // and the count on the badge stayed where it was.
   return { all };
 }
-// Which alliances are filtered out, lowercased. Null means "never chosen", and only then does
-// the default apply — the old version fell back to the default whenever the box was empty, so
-// clearing the filter silently re-applied the very thing you had just cleared, and the roster
-// count never moved.
-let skipSel = null;
-function skipList() {
-  return skipSel === null ? DEFAULT_SKIP.slice() : skipSel.slice();
-}
-// Every alliance in the roster that is not one of the four, in the order they appear. These
-// are the only things worth offering to filter: nobody wants to exclude 698W.
-function otherAlliances() {
-  const seen = new Map();
-  for (const r of (rosterCache && rosterCache.all) || []) {
-    const a = (r.alliance || '').trim();
-    const k = a.toLowerCase();
-    if (!a || MAIN_ALLIANCES.some(m => m.toLowerCase() === k)) continue;
-    seen.set(k, (seen.get(k) || { name: a, n: 0 }));
-    seen.get(k).n++;
-  }
-  return [...seen.entries()].map(([k, v]) => ({ key: k, name: v.name, n: v.n }));
-}
-// Redrawn after a pull and whenever the roster changes. Ticking a box re-splits what is
-// already in hand rather than fetching again, so the count answers immediately.
-function refreshSkipBox() {
-  const box = $('skipbox');
-  if (!box) return;
-  const opts = otherAlliances();
-  if (!opts.length) {
-    box.textContent = (rosterCache && rosterCache.all)
-      ? 'Every row is in one of the four alliances — nothing to filter.'
-      : 'Pull the roster to see which alliances it holds.';
-    return;
-  }
-  const on = skipList();
-  box.innerHTML = opts.map(o =>
-    `<label><input type="checkbox" data-a="${esc(o.key)}"${on.includes(o.key) ? ' checked' : ''}>`
-    + `${esc(o.name)} <span class="note">(${o.n})</span></label>`).join('');
-  box.querySelectorAll('input[type=checkbox]').forEach(cb => cb.onchange = () => {
-    skipSel = [...box.querySelectorAll('input[type=checkbox]')]
-                .filter(x => x.checked).map(x => x.dataset.a);
-    store.set('skipSel', skipSel);
-    refreshRosterList(); refreshState();
-  });
-}
+// Nothing is filtered out any more. Every player in the sheet is a candidate, including the
+// ones parked in z3.? or z1.Transferred: they are on the roster, and a row in the recording
+// that matches one of them is better recognised than left as a stranger. The alliance column
+// is still read, because the results table shows it.
+const skippedRoster = () => [];
 
 /* ---------------- matching ---------------- */
 let rosterCache = null;            // { all }
@@ -378,24 +298,11 @@ let rosterCache = null;            // { all }
 // were plainly correct, taking the match rate from 95% to 76%.
 function currentRoster() {
   const all = rosterCache && rosterCache.all;
-  if (!all || !all.length) return parseRoster($('roster').value);
-  const skip = skipList();
-  return all.filter(r => !skip.includes((r.alliance || '').toLowerCase()));
+  // Nothing to fall back on now the hand-pasted box has gone: until the sheet is pulled there
+  // is simply nothing to match against, and the badge says as much.
+  return (all && all.length) ? all : [];
 }
 const fullRoster = currentRoster;
-// The filtered-out players, kept rather than discarded: if one still turns up in the video we
-// want to recognise them and leave the row out deliberately, not have them sitting in the
-// review list as an unknown every month.
-const skippedRoster = () => {
-  const all = (rosterCache && rosterCache.all) || [];
-  const skip = skipList();
-  return all.filter(r => skip.includes((r.alliance || '').toLowerCase()));
-};
-function parseRoster(text) {
-  return text.split(/\r?\n/).map(l => l.split(/\t|,/).map(s => s.trim()))
-             .filter(c => c[0]).map(c => ({ search: c[0], ingame: c[1] || c[0], alliance: c[2] || '' }))
-             .filter(r => !/^search\s*name/i.test(r.search));
-}
 // Generated from Unicode's own character names: every codepoint whose name says which
 // Latin letter or digit it is, and that NFKD does not already resolve. That covers the
 // enclosed, squared, struck-through and small-capital forms players decorate names with —
@@ -1671,7 +1578,7 @@ function render(roster) {
   $('verdict').innerHTML =
     `<div class="${need || gap ? 'warnbox' : 'okbox'}">${rows.length} players &middot; `
     + `${rows.length - need - dropped} matched to the roster`
-    + (dropped ? ` &middot; ${dropped} excluded (${esc(skipList().join(', '))})` : '')
+    + (dropped ? ` &middot; ${dropped} excluded` : '')
     + (need ? ` &middot; <strong>${need} to confirm below</strong>` : '')
     + `</div>`
     + (gap ? `<div class="warnbox">The game showed ranks up to ${top}, but `

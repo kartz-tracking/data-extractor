@@ -88,7 +88,8 @@ export const insertRows = (rows, at) => call('insertRows', rows, at);
 export const removeRows = (from, count) => call('removeRows', from, count);
 export const appendLog = line => call('appendLog', line);
 export const getWorker = () => call('getWorker');
-export const setWorker = (url, pass) => call('setWorker', url, pass);
+export const setWorker = url => call('setWorker', url);
+export const getIdentity = () => call('getIdentity');
 export const writeSettings = patch => call('writeSettings', patch);
 export const readSettings = () => call('readSettings');
 
@@ -142,8 +143,11 @@ function stub(name, args) {
       fakeRows -= Number(args[1]) || 0;
       return wait({ removed: Number(args[1]) || 0 });
     case 'appendLog': return wait(true);
-    case 'getWorker': return wait({ url: '', pass: '', hasPass: false });
-    case 'setWorker': return wait({ url: args[0], pass: args[1], hasPass: !!args[1] });
+    case 'getWorker': return wait({ url: '' });
+    case 'setWorker': return wait({ url: args[0] });
+    // Only Google can sign one of these, so outside Sheets there is nothing to hand back and
+    // the Worker will say so rather than the page pretending otherwise.
+    case 'getIdentity': return wait('');
     case 'readSettings': return wait({ ...settings });
     case 'writeSettings': Object.assign(settings, args[0] || {}); return wait({ ...settings });
     default: return Promise.reject(new Error('no stand-in for ' + name));

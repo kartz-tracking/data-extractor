@@ -91,31 +91,43 @@ function sheetNames() {
   return SpreadsheetApp.getActive().getSheets().map(function (s) { return s.getName(); });
 }
 
-/**
- * Where the Worker is, and the phrase that proves this spreadsheet may use it.
- *
- * The phrase is a document property rather than a line in this file: it is set once, from the
- * dialog, and everyone who opens the spreadsheet afterwards gets it without being told it.
- *
- * It is handed to the dialog's page, which needs it — the frames of a recording go from the
- * browser straight to the Worker, and fifty megabytes of them could not be relayed through
- * Apps Script in any case. That is as private as the spreadsheet: only somebody Google already
- * lets edit this file can open the dialog at all. Anybody who should not have the phrase should
- * not have edit access, and the phrase can be changed here without touching the Worker's key.
- */
+/** Where the Worker is. Kept per spreadsheet, so nobody sets it twice. */
 function getWorker() {
   var s = readSettings();
-  return {
-    url: s.workerUrl || 'https://data-extractor.jk06nm04.workers.dev',
-    pass: s.workerPass || '',
-    hasPass: !!s.workerPass
-  };
+  return { url: s.workerUrl || 'https://data-extractor.jk06nm04.workers.dev' };
 }
 
-function setWorker(url, pass) {
-  writeSettings({
-    workerUrl: String(url || '').replace(/\/+$/, '') || null,
-    workerPass: pass === null || pass === undefined ? undefined : String(pass)
-  });
+function setWorker(url) {
+  writeSettings({ workerUrl: String(url || '').replace(/\/+$/, '') || null });
   return getWorker();
+}
+
+/**
+ * Proof of who is using the add-on, for the Worker.
+ *
+ * Google signs this: a short-lived OpenID Connect token naming the person, made out to this
+ * script's own OAuth client and nobody else's. The Worker checks the signature and the
+ * audience, which together mean "somebody who has authorised this add-on" — the people the
+ * spreadsheet is shared with, no more.
+ *
+ * There is nothing to type and nothing to keep. It lasts about an hour, and the page asks for
+ * a fresh one when it needs to. Requires "openid" in appsscript.json.
+ */
+function getIdentity() {
+  return ScriptApp.getIdentityToken();
+}
+
+/**
+ * The client id this script's tokens are made out to — what the Worker needs pinning to.
+ *
+ * Run it from the editor once and read it in the execution log, or read it off the Worker's
+ * first refusal, which says the same thing.
+ */
+function showClientId() {
+  var token = ScriptApp.getIdentityToken();
+  var claims = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(token.split('.')[1]))
+    .getDataAsString());
+  Logger.log('SCRIPT_AUD = ' + claims.aud);
+  SpreadsheetApp.getActive().toast(String(claims.aud), 'Kartz — client id', 30);
+  return claims.aud;
 }

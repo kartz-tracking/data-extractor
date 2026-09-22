@@ -3,9 +3,9 @@
  *
  *   node test/run.mjs
  *
- * Three suites, and between them the three things that break quietly: the door on the Worker,
- * what the model does when a provider is busy, and which column on a spreadsheet holds what.
- * No Cloudflare account, no network, no dependencies beyond Node itself.
+ * Four suites, and between them the things that break quietly: who the Worker lets in, the
+ * routes behind that door, what the model does when a provider is busy, and which column on a
+ * spreadsheet holds what. No Cloudflare account, no network, no dependencies beyond Node.
  *
  * The dialog itself is looked at rather than tested:
  *
@@ -14,7 +14,7 @@
  */
 import { spawn } from 'node:child_process';
 
-const SUITES = ['worker.test.mjs', 'providers.test.mjs', 'fields.test.mjs'];
+const SUITES = ['identity.test.mjs', 'worker.test.mjs', 'providers.test.mjs', 'fields.test.mjs'];
 
 let failed = 0;
 for (const suite of SUITES) {

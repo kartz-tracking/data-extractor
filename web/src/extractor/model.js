@@ -5,7 +5,7 @@
 import { ctx } from './context.js';
 import { MODEL, FALLBACKS, batchSize } from './config.js';
 import { buildPrompt, rosterSheet } from './prompt.js';
-import { apiUrl, apiHeaders } from '../services/api.js';
+import { apiUrl, apiHeaders, ensureAuth } from '../services/api.js';
 
 // The free tier meters requests per minute — fifteen a minute for this model — not per day.
 // That never bit while a run was six requests, but slicing each frame into strips triples the
@@ -169,6 +169,7 @@ async function callProxy(batch, model, roster) {
 
 async function postBatch(batch, model, roster) {
   try {
+    await ensureAuth();
     return await fetch(apiUrl('/' + encodeURIComponent(model)), {
       method: 'POST',
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),

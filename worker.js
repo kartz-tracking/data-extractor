@@ -6,17 +6,20 @@
  * could read it. So the page sends frames here, this Worker adds the key, and the model answers
  * back through it. The same door answers questions about a tab.
  *
- * There is no database and no account system. Who may do what is decided by Google, in the
- * sharing settings of the spreadsheet the add-on is bound to: if you can open the sheet you can
- * open the dialog, and the dialog is handed the shared phrase by Apps Script when it starts.
- * The phrase is the only thing this Worker checks, because it is the only thing it can check.
+ * There is no database and no account system, and nothing to type in. Who may call is decided
+ * by Google: the dialog brings an identity token minted for the add-on's own OAuth client, this
+ * Worker checks Google's signature on it and that the audience is that client, and only a
+ * person who has authorised your add-on can produce one. That is the same set of people the
+ * spreadsheet is shared with.
  *
  *   wrangler deploy
  *   wrangler secret put GEMINI_KEY      <- required: reading a recording
- *   wrangler secret put SHARED_PASS     <- required: the phrase the spreadsheet brings
+ *   wrangler secret put SCRIPT_AUD      <- required: the add-on's client id; the first call says it
+ *   wrangler secret put ALLOWED_EMAILS  <- optional: a shorter list than the sharing settings
  *   wrangler secret put ANTHROPIC_API_KEY | OPENAI_API_KEY   <- optional: asking about a tab
  */
 import { HttpError } from './worker/util.js';
+import { whoIsCalling } from './worker/identity.js';
 import { ask, aiStatus } from './worker/ai/index.js';
 
 const UPSTREAM = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -40,7 +43,7 @@ function corsHeaders(origin) {
   return {
     'access-control-allow-origin': origin || '*',
     'access-control-allow-methods': 'GET, POST, OPTIONS',
-    'access-control-allow-headers': 'content-type, x-kartz-pass',
+    'access-control-allow-headers': 'content-type, authorization',
     'access-control-max-age': '86400',
     'vary': 'Origin',
   };
@@ -77,26 +80,25 @@ export default {
     const reply = (body, status) => new Response(JSON.stringify(body),
       { status, headers: { ...cors, 'content-type': 'application/json' } });
 
-    // The preflight cannot carry the phrase — a browser sends it before the real request and
+    // The preflight cannot carry the token — a browser sends it before the real request and
     // without its headers — so this one is decided on the origin alone. The request that
-    // follows it still has to bring the phrase.
+    // follows it still has to bring an identity.
     if (request.method === 'OPTIONS') {
       return new Response(null, originOk(origin)
         ? { status: 204, headers: cors }
         : { status: 403 });
     }
 
-    // The phrase, and nothing else. An Origin header proves nothing — it is trivially forged —
-    // and without a gate of some kind a deployment with a model key is an open AI proxy for
-    // whoever finds the URL.
-    if (!env.SHARED_PASS) {
-      return reply({ error: { code: 501, message:
-        'this Worker has no SHARED_PASS secret set, so it will not answer. Set one with: '
-        + 'wrangler secret put SHARED_PASS — then put the same phrase in Kartz → Settings.' } }, 501);
-    }
-    if (request.headers.get('x-kartz-pass') !== env.SHARED_PASS) {
-      return reply({ error: { code: 403, message:
-        'wrong shared phrase. Put the phrase this Worker was given into Kartz → Settings.' } }, 403);
+    // Who is calling. An Origin header proves nothing — it is trivially forged — so the gate is
+    // Google's signature on an identity token minted for this add-on and nobody else's.
+    // Without a gate of some kind a deployment with a model key is an open AI proxy for whoever
+    // finds the URL.
+    let who;
+    try {
+      who = await whoIsCalling(request, env);
+    } catch (e) {
+      const status = e instanceof HttpError ? e.status : 401;
+      return reply({ error: { code: status, message: String((e && e.message) || e) } }, status);
     }
 
     // `/api/ai/ask` and `/ai/ask` are the same route: the page is configured with the Worker's
@@ -106,7 +108,8 @@ export default {
 
     if (parts[0] === 'ai') {
       try {
-        if (parts[1] === 'status' && request.method === 'GET') return reply(aiStatus(env), 200);
+        if (parts[1] === 'status' && request.method === 'GET')
+          return reply({ ...aiStatus(env), you: who.email }, 200);
         if (parts[1] === 'ask' && request.method === 'POST') {
           const body = await request.json().catch(() => null);
           if (!body) throw new HttpError(400, 'a JSON body is required.');

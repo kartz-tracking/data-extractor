@@ -75,7 +75,7 @@ export default function Dialog() {
       setSheet(here);
       setRoster(list);
       setWorker(w);
-      API.useWorker({ url: w.url, pass: w.pass });
+      API.useWorker({ url: w.url, identity: Sheet.getIdentity });
       setMapping(guessFields(here.headers));
     } catch (e) {
       setError(e.message || String(e));
@@ -284,7 +284,7 @@ export default function Dialog() {
                     <div className="fact">
                       <dt>Model</dt>
                       <dd>{API.hasWorker()
-                        ? <>ready<small>{worker && worker.hasPass ? 'phrase set' : 'no phrase set'}</small></>
+                        ? <>ready<small>signed in with Google</small></>
                         : <span className="bad">no Worker set</span>}</dd>
                     </div>
                   </dl>

@@ -54,8 +54,9 @@ Five things, and nothing else.
 It also appends one line per extraction to a `Kartz log` tab, which is the only tab it will
 create.
 
-**Permissions are Google's.** There are no accounts. If you can edit the spreadsheet you can
-extract into it; if you can only view it, the dialog says so and stops.
+**Permissions are Google's.** There are no accounts and no passwords anywhere in this, not even
+between the add-on and the Worker. If you can edit the spreadsheet you can extract into it; if
+you can only view it, the write fails with Google's own refusal.
 
 ---
 
@@ -79,38 +80,52 @@ cd web && npm run build      # writes addon/Dialog.html
 clasp push
 ```
 
-The first time you open the dialog Google asks you to authorise the script. It asks for two
+The first time you open the dialog Google asks you to authorise the script. It asks for three
 things: the spreadsheet it is bound to (`spreadsheets.currentonly` — not all your files, this
-one), and permission to show a window.
+one), permission to show a window, and `openid`, which is how it proves to the Worker who you
+are. **Tick every box on that screen** — an unticked one means the add-on gets nothing and then
+fails confusingly.
+
+A script owned by a personal Google account is unverified, so everyone but the owner sees
+"Google hasn't verified this app" once, and clicks Advanced → Go to … (unsafe). To remove that,
+attach the script to a standard Cloud project (⚙ Project Settings → Google Cloud Platform
+project), fill in its OAuth consent screen, and set publishing status to **In production**.
 
 ---
 
 ## The Worker
 
-A page cannot hold a secret. The model key lives in a Cloudflare Worker instead, and the
-spreadsheet proves itself with a shared phrase.
+A page cannot hold a secret. The model key lives in a Cloudflare Worker instead — and the way
+the Worker knows the call is really yours is Google, not a password.
+
+Apps Script mints a short-lived OpenID Connect token for whoever is using the add-on. It is
+signed by Google and **made out to this add-on's own OAuth client**. The Worker checks the
+signature against Google's published keys and checks that audience. Only your script can obtain
+such a token, and only somebody who has authorised your script can make it do so — which is the
+people the spreadsheet is shared with. Nothing is typed, nothing is stored, nothing to leak.
 
 ```bash
 npx wrangler login                     # the account the Worker lives on
 npx wrangler deploy
 npx wrangler secret put GEMINI_KEY     # required: reading a recording
-npx wrangler secret put SHARED_PASS    # required: the phrase the spreadsheet brings
+npx wrangler secret put SCRIPT_AUD     # required: which add-on may call — see below
 npx wrangler secret put ANTHROPIC_API_KEY   # optional: asking questions about a tab
+npx wrangler secret put ALLOWED_EMAILS      # optional: a shorter list than the sharing settings
 ```
 
-Then open **Kartz → ⚙ Settings** in the dialog, paste the Worker's address and the same phrase,
-and press **Save and test** — it calls the Worker and tells you which model answered.
+**Finding `SCRIPT_AUD`** — two ways, both a one-off:
 
-The phrase is kept in the spreadsheet's own properties, so everyone who opens the file gets the
-same setup and nobody types it twice. It is handed to the dialog's page, which needs it: the
-frames go from the browser straight to the Worker. That is as private as the spreadsheet is —
-only somebody who can already edit the file can open the dialog at all.
+- Open the dialog and press **Save and test**. The Worker refuses, and the refusal names the
+  client id it just saw. Paste that.
+- Or run `showClientId` from the Apps Script editor; it toasts the value into the spreadsheet
+  and writes it to the execution log.
 
-The Worker answers nothing without the phrase, and answers a preflight only for the
-`googleusercontent.com` page Google serves the add-on from. With no `SHARED_PASS` set it refuses
-everyone, rather than being an open AI proxy for whoever finds the URL.
+Until it is set the Worker answers nobody, so an unconfigured deployment is never an open AI
+proxy for whoever finds the URL. A preflight is allowed from `googleusercontent.com` — where
+Google serves the add-on's page — and from nowhere else.
 
----
+Then, in the dialog: **⚙ Settings** → check the Worker address → **Save and test**, which should
+come back naming you and the model.
 
 ## Asking about a tab
 
@@ -141,8 +156,9 @@ The dialog says so, in as many words, when it is running against the stand-in.
 node test/run.mjs
 ```
 
-Three suites: the Worker's door, what the model does when a provider is busy, and which column
-on a spreadsheet holds what.
+Four suites: who gets through the Worker's door (with real RSA signatures and Google's
+certificate endpoint answered locally), the routes behind it, what the model does when a
+provider is busy, and which column on a spreadsheet holds what.
 
 ### The shape of it
 
@@ -155,7 +171,8 @@ web/src/
   dialog/           the window: Dialog, ReviewTable, Settings, AskPanel, bridge, fields
   extractor/        frames → model → rows → roster matching (unchanged)
   styles/           tokens.css (the palette), dialog.css (the window)
-worker.js           the door: the phrase, the model proxy
+worker.js           the door, and the model proxy
+worker/identity.js  checking Google's signature on who is calling
 worker/ai/          asking about a tab
 ```
 

@@ -1,9 +1,12 @@
 /**
- * The three things this add-on has to be told, and nothing else.
+ * The two things this add-on has to be told, and nothing else.
  *
- * Which tab the roster is on, where the Worker lives, and the phrase that proves this
- * spreadsheet may use it. All three are kept in the spreadsheet's own properties — not in this
- * browser — so anybody who opens the sheet gets the same setup and nobody has to type it twice.
+ * Which tab the roster is on, and where the Worker lives. Both are kept in the spreadsheet's
+ * own properties — not in this browser — so anybody who opens the sheet gets the same setup
+ * and nobody has to type it twice.
+ *
+ * There is no password here and nothing to share. The Worker is told who you are by Google,
+ * with a signed token made out to this add-on; "Save and test" is what proves it works.
  *
  * Beside them, what Kartz thinks each heading on the current tab means. It is the thing people
  * actually want to check, and the dialog is wide enough to show it without scrolling.
@@ -15,7 +18,6 @@ import { guessFields, FIELDS } from './fields.js';
 
 export default function Settings({ sheet, roster, worker, top, onClose }) {
   const [url, setUrl] = useState((worker && worker.url) || '');
-  const [pass, setPass] = useState('');
   const [tab, setTab] = useState('');
   const [state, setState] = useState(null);
   const [mapping, setMapping] = useState([]);
@@ -28,12 +30,14 @@ export default function Settings({ sheet, roster, worker, top, onClose }) {
   const save = async () => {
     setState('saving…');
     try {
-      await Sheet.setWorker(url.trim(), pass);
+      await Sheet.setWorker(url.trim());
       await Sheet.writeSettings({ rosterTab: tab.trim() || null });
-      API.useWorker({ url: url.trim(), pass });
+      API.useWorker({ url: url.trim(), identity: Sheet.getIdentity });
       const status = await API.aiStatus().catch(e => ({ available: false, reason: e.message }));
-      setState(status.available ? 'The Worker answered — ' + (status.model || 'model ready')
-                                : 'Saved, but the Worker said: ' + (status.reason || 'no model'));
+      setState(status.available
+        ? 'The Worker knows you' + (status.you ? ' as ' + status.you : '')
+          + ' — ' + (status.model || 'model ready')
+        : 'Saved, but the Worker said: ' + (status.reason || 'no model'));
     } catch (e) {
       setState(e.message || String(e));
     }
@@ -61,16 +65,11 @@ export default function Settings({ sheet, roster, worker, top, onClose }) {
           <div className="field">
             <label htmlFor="st-url">Worker address</label>
             <input id="st-url" value={url} onChange={e => setUrl(e.target.value)}
-                   placeholder="https://kartz.<you>.workers.dev" spellCheck={false} />
-          </div>
-          <div className="field">
-            <label htmlFor="st-pass">Shared phrase</label>
-            <input id="st-pass" type="password" value={pass} onChange={e => setPass(e.target.value)}
-                   placeholder={worker && worker.hasPass ? '•••••••• (set)' : 'not set'} />
+                   placeholder="https://data-extractor.<you>.workers.dev" spellCheck={false} />
             <small className="hint">
-              The phrase the Worker was given with <code>wrangler secret put SHARED_PASS</code>. It
-              is kept in this spreadsheet, never in the browser, and only people who can edit the
-              sheet can reach it.
+              Nothing to log in to: Google signs a token saying who you are, made out to this
+              add-on and nothing else, and the Worker checks it. The people who can use this are
+              exactly the people this spreadsheet is shared with.
             </small>
           </div>
 

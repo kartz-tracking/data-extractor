@@ -2,29 +2,54 @@
  * One door to the Worker.
  *
  * The dialog is a page on googleusercontent.com, so every call to the Worker is cross-origin
- * and has to prove itself. The proof is the shared phrase, which is kept in the spreadsheet's
- * own properties and handed to this page at startup by Apps Script — it is never stored in the
- * browser and never written into the bundle. Only somebody who can already edit the
- * spreadsheet can open the dialog at all, so the phrase never reaches anyone who did not
- * already have it.
+ * and has to prove itself. The proof is an identity token: Google signs it, it names the
+ * person using the add-on, and it is made out to this add-on's OAuth client and no other. The
+ * Worker checks both. Nothing is shared, nothing is typed, and nothing is kept — the token
+ * lasts about an hour and a fresh one is a call to Apps Script away.
  *
  * The Worker does two things now: it holds the model key, and it answers questions about what
  * is on the sheet. Everything else it used to do went with the database.
  */
 
 let base = '';
-let pass = '';
+let mint = null;                       // asks Apps Script for a token
+let token = '';
+let expires = 0;                       // seconds, from the token itself
 
 /** Told to the page once, by Apps Script, before anything else happens. */
-export function useWorker({ url, pass: phrase }) {
+export function useWorker({ url, identity }) {
   base = String(url || '').replace(/\/+$/, '');
-  pass = String(phrase || '');
+  mint = typeof identity === 'function' ? identity : null;
+  token = ''; expires = 0;
 }
 
 export const apiBase = () => base;
 export const hasWorker = () => !!base;
 export const apiUrl = path => base + path;
-export const apiHeaders = (h = {}) => ({ ...h, ...(pass ? { 'x-kartz-pass': pass } : {}) });
+
+// When it runs out, read off the token rather than guessed at. Two minutes of margin, because
+// a recording can take a while and the request should not expire mid-flight.
+const stillGood = () => token && expires - Date.now() / 1000 > 120;
+
+/**
+ * A token to put on the next request, fetched if the one in hand is old.
+ *
+ * Every call path awaits this before it builds its headers, so a long extraction cannot end
+ * with an expired token on the last request.
+ */
+export async function ensureAuth() {
+  if (stillGood() || !mint) return token;
+  token = String((await mint()) || '');
+  expires = 0;
+  try {
+    const body = token.split('.')[1];
+    const json = atob(body.replace(/-/g, '+').replace(/_/g, '/'));
+    expires = Number(JSON.parse(json).exp) || 0;
+  } catch { expires = Date.now() / 1000 + 1800; }   // unreadable: refresh in half an hour
+  return token;
+}
+
+export const apiHeaders = (h = {}) => ({ ...h, ...(token ? { authorization: 'Bearer ' + token } : {}) });
 
 export class ApiError extends Error {
   constructor(status, message, body) { super(message); this.status = status; this.body = body; }
@@ -32,12 +57,13 @@ export class ApiError extends Error {
 
 export async function api(path, opts = {}) {
   if (!base) throw new ApiError(0, 'The Worker address has not been set. Open Kartz → Settings.');
+  await ensureAuth();
   const res = await fetch(apiUrl(path), { ...opts, headers: apiHeaders(opts.headers || {}) });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     const message = (body.error && body.error.message) || body.error
       || (res.status === 403
-        ? 'the Worker refused this spreadsheet — check the shared phrase in Kartz → Settings'
+        ? 'the Worker refused this add-on — check its address in Kartz → Settings'
         : `request failed (${res.status})`);
     throw new ApiError(res.status, message, body);
   }

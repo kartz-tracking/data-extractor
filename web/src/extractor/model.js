@@ -96,6 +96,10 @@ async function callModel(frames, roster, sheetOn = true) {
 
 const modelChain = () => [MODEL, ...FALLBACKS.filter(m => m !== MODEL)];
 const isBusy = e => /\b(429|500|502|503|504)\b/.test(e.message);
+// Two different things wear the same retry: 429 is our allowance, 503 is Google's capacity.
+// They are waited out identically but they are not the same problem, and a log line that
+// calls a busy model "rate limited" sends people to look at a quota page for no reason.
+const isOurs = e => /\b429\b/.test(e.message);
 
 // How long the server asked us to wait, in seconds, or 0 if it did not say. Groq answers
 // with a retry-after header and often names the delay in the message body too.
@@ -132,11 +136,24 @@ async function withFallback(call, chain, note, paced) {
         const hinted = waitHint(e);
         if (paced || hinted) {
           const secs = hinted || 20;
-          ctx.log(`rate limited — waiting ${secs}s…`);
+          ctx.log(isOurs(e)
+            ? `over the per-minute allowance — waiting ${secs}s…`
+            : `the model is busy at Google's end — waiting ${secs}s…`);
           await new Promise(r => setTimeout(r, secs * 1000 + 500));
           continue;
         }
-        if (/\b(429|503)\b/.test(e.message)) break;    // saturated alias: next model
+        if (/\b(429|503)\b/.test(e.message)) {
+          // A busy model with no hint attached: wait a little anyway before moving on, because
+          // "high demand" clears in seconds and abandoning the batch throws away everything
+          // already paid for in it.
+          if (attempt < 2) {
+            const secs = 8 * (attempt + 1);
+            ctx.log(`the model is busy at Google's end — waiting ${secs}s…`);
+            await new Promise(r => setTimeout(r, secs * 1000));
+            continue;
+          }
+          break;                                       // saturated: next model, if there is one
+        }
         await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
       }
     }

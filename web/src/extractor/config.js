@@ -5,8 +5,23 @@
 // an open tab for days, so "it is still happening" and "it is fixed" are easy to say about
 // different builds. Bump it with any change worth telling apart from the one before.
 export const BUILD = '2026-09-16g';
-export const MODEL = 'gemini-3.5-flash-lite';
-export const FALLBACKS = [];        // one model, deliberately: a run either works or says why
+// Which model reads the frames.
+//
+// A bare name is Google's. `@ollama/<name>` is a model hosted by Ollama, and `@cf/<name>` one
+// of Cloudflare's own — the Worker knows all three and the page knows none of them, so
+// switching provider is this line and a rebuild.
+//
+// Whatever is named here must be able to see: the request is a prompt and up to forty JPEG
+// frames, and a model without vision has nothing to read.
+export const MODEL = '@ollama/gemma4:31b';
+// One model was deliberate — a run either works or says why — but "high demand" is the host's
+// capacity rather than anything about the run, and it happens. The fallbacks are tried in
+// order, only when the one above is unavailable.
+export const FALLBACKS = ['gemini-3.5-flash-lite', 'gemini-3.5-flash'];
+
+// A cloud model on the other side of a slower link wants fewer, smaller requests than Google's
+// flash does: forty frames is several megabytes, and a host that times out costs the whole
+// batch. Lower BATCH_MAX below if a run stalls rather than answers.
 
 // Six requests, not four or twelve: fewer resends less roster prompt, but a long batch is
 // attended to worse than a short one — 47 images to a request dropped the match rate from 91

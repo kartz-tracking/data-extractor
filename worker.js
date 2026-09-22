@@ -13,13 +13,15 @@
  * spreadsheet is shared with.
  *
  *   wrangler deploy
- *   wrangler secret put GEMINI_KEY      <- required: reading a recording
+ *   wrangler secret put GEMINI_KEY      <- required: reading a recording with Google's models
+ *   wrangler secret put OLLAMA_KEY      <- or this, for a model hosted by Ollama
  *   wrangler secret put SCRIPT_AUD      <- required: the add-on's client id; the first call says it
  *   wrangler secret put ALLOWED_EMAILS  <- optional: a shorter list than the sharing settings
  *   wrangler secret put ANTHROPIC_API_KEY | OPENAI_API_KEY   <- optional: asking about a tab
  */
 import { HttpError } from './worker/util.js';
 import { whoIsCalling } from './worker/identity.js';
+import { runOllama } from './worker/ollama.js';
 import { ask, aiStatus } from './worker/ai/index.js';
 
 const UPSTREAM = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -126,15 +128,21 @@ export default {
     // Everything else is a model call by name — reading a recording — which is always a POST.
     if (request.method !== 'POST') return reply({ error: { code: 405, message: 'POST only' } }, 405);
 
+    // Three provinces, told apart by a prefix on the name the page asked for. Everything
+    // without one is Google's, which is what the page has always sent.
     const model = path;
     const isCf = model.startsWith('@cf/');
-    if (!(isCf ? /^@cf\/[a-zA-Z0-9._/-]{1,80}$/ : /^[a-zA-Z0-9.-]{1,64}$/).test(model))
+    const isOllama = model.startsWith('@ollama/');
+    const shape = isCf ? /^@cf\/[a-zA-Z0-9._/-]{1,80}$/
+      : isOllama ? /^@ollama\/[a-zA-Z0-9._:/-]{1,80}$/
+      : /^[a-zA-Z0-9.-]{1,64}$/;
+    if (!shape.test(model))
       return reply({ error: { code: 400, message: 'Bad model name.' } }, 400);
 
     // 501, not 500: the page retries a 500 for two minutes because a 500 is usually a model
     // having a bad afternoon. A missing key is not going to start working, so it must not look
     // like one that might.
-    if (!isCf && !env.GEMINI_KEY)
+    if (!isCf && !isOllama && !env.GEMINI_KEY)
       return reply({ error: { code: 501, message:
         'this Worker has no GEMINI_KEY secret set, so it cannot read a recording. '
         + 'Set one with: wrangler secret put GEMINI_KEY' } }, 501);
@@ -144,11 +152,18 @@ export default {
     if (payload.length > 25 * 1024 * 1024)
       return reply({ error: { code: 413, message: 'Request too large.' } }, 413);
 
-    if (isCf) {
-      try { return reply(await runWorkersAI(env, model, JSON.parse(payload)), 200); }
-      catch (e) {
-        // surface it as a normal upstream failure so the page's fallback logic still applies
-        return reply({ error: { code: 502, message: String((e && e.message) || e) } }, 502);
+    if (isCf || isOllama) {
+      try {
+        const body = JSON.parse(payload);
+        return reply(isCf
+          ? await runWorkersAI(env, model, body)
+          : await runOllama(env, model.slice('@ollama/'.length), body), 200);
+      } catch (e) {
+        // Keep the status the host gave: the page moves down its fallback chain on 429 and
+        // 503, and flattening everything to 502 would strand it on a model that is merely busy.
+        const status = e instanceof HttpError ? e.status
+          : (e && e.status >= 400 && e.status < 600 ? e.status : 502);
+        return reply({ error: { code: status, message: String((e && e.message) || e) } }, status);
       }
     }
 

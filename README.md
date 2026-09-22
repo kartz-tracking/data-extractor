@@ -107,7 +107,8 @@ people the spreadsheet is shared with. Nothing is typed, nothing is stored, noth
 ```bash
 npx wrangler login                     # the account the Worker lives on
 npx wrangler deploy
-npx wrangler secret put GEMINI_KEY     # required: reading a recording
+npx wrangler secret put GEMINI_KEY     # reading a recording with Google's models
+npx wrangler secret put OLLAMA_KEY     # or this, for a model hosted by Ollama
 npx wrangler secret put SCRIPT_AUD     # required: which add-on may call — see below
                                        # (a comma-separated list, for several spreadsheets)
 npx wrangler secret put ANTHROPIC_API_KEY   # optional: asking questions about a tab
@@ -204,6 +205,23 @@ The code is identical — `Code.gs`, `Sheets.gs`, `Dialog.html` unchanged. What 
 - the project is **standalone**, not bound to a file;
 - the manifest is `addon/appsscript.marketplace.json`, which adds the `addOns` block;
 - there is **one OAuth client for the add-on**, so `SCRIPT_AUD` is a single value forever.
+
+### Which model reads the frames
+
+One line in `web/src/extractor/config.js`, and a rebuild:
+
+```js
+export const MODEL = '@ollama/gemma4:31b';                 // Ollama's cloud, or your own host
+export const FALLBACKS = ['gemini-3.5-flash-lite'];        // tried only when the first is down
+```
+
+A bare name is Google's, `@ollama/<name>` goes to Ollama (`OLLAMA_KEY`, and `OLLAMA_URL` for a
+self-hosted box), `@cf/<name>` to Cloudflare's own. The page knows none of this: it speaks
+Gemini's request shape and the Worker translates, so a provider change never reaches the
+browser.
+
+**Whatever is named there has to be able to see.** A request is a prompt and up to forty JPEG
+frames; a model without vision has nothing to read.
 
 ### The steps
 

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setup — Extract Data</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f4f6fa; --panel:#fff; --ink:#0b1420; --ink2:#34435a;
+          --muted:#5d6c82; --line:rgba(16,32,58,.12); --accent:#0a6cf0; --code:#eef2f8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0e141c; --panel:#161e29; --ink:#eef3f9; --ink2:#c2cddb; --muted:#8a99ad;
+            --line:rgba(255,255,255,.12); --accent:#5b9bff; --code:#0b1118; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); padding:40px 16px 80px;
+         font:16px/1.65 -apple-system, Segoe UI, Roboto, system-ui, sans-serif; }
+  main { max-width: 680px; margin:0 auto; }
+  h1 { font-size:28px; margin:0 0 4px; letter-spacing:-.01em; }
+  .sub { color:var(--muted); margin:0 0 28px; }
+  h2 { font-size:17px; margin:30px 0 8px; }
+  p, li { color:var(--ink2); }
+  ol { padding-left:20px; } li { margin:6px 0; }
+  pre { background:var(--code); border:1px solid var(--line); border-radius:10px; padding:12px 14px;
+        overflow-x:auto; font:13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color:var(--ink); }
+  code { font:13px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .note { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  a { color:var(--accent); }
+  footer { margin-top:40px; color:var(--muted); font-size:14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Setting it up</h1>
+  <p class="sub">Extract Data reads recordings with a model. You bring the model.</p>
+
+  <div class="note">
+    <p style="margin:0">The add-on itself installs in one click, but it cannot read a recording
+    until it has somewhere to send the frames. That somewhere is a small service you run — it
+    holds your own model key, so nobody's recordings are ever read on anybody else's account.
+    It is free to run: Cloudflare's free tier covers it, and the model key is yours.</p>
+  </div>
+
+  <h2>1. Get the code</h2>
+  <p><a href="https://github.com/kartz-tracking/data-extractor">github.com/kartz-tracking/data-extractor</a>
+  — clone it or download the zip.</p>
+
+  <h2>2. Deploy the service</h2>
+  <p>With <a href="https://developers.cloudflare.com/workers/wrangler/">Wrangler</a> installed,
+  from the project folder:</p>
+<pre>npx wrangler login
+npx wrangler deploy</pre>
+  <p>It prints the address it published to — something like
+  <code>https://data-extractor.&lt;you&gt;.workers.dev</code>. Keep it.</p>
+
+  <h2>3. Give it a model key</h2>
+  <p>A Gemini API key, free from <a href="https://aistudio.google.com/apikey">Google AI Studio</a>:</p>
+<pre>npx wrangler secret put GEMINI_KEY</pre>
+
+  <h2>4. Tell it which add-on may call it</h2>
+  <p>The service answers nobody until it knows. Open a spreadsheet, then
+  <b>Extensions → Extract Data → Extract a recording</b>, press the gear, put in your service's
+  address, and press <b>Save and test</b>. It will refuse — and the refusal contains a client id
+  ending in <code>.apps.googleusercontent.com</code>. Give it that:</p>
+<pre>npx wrangler secret put SCRIPT_AUD</pre>
+  <p>Press <b>Save and test</b> again; it should name you and the model. That check is what
+  keeps the service yours: it will only answer requests signed by Google for this add-on.</p>
+
+  <h2>5. Point it at your roster</h2>
+  <p>In the same settings panel, choose the tab holding the list of players. The add-on guesses,
+  and usually guesses right; confirm it once per spreadsheet.</p>
+
+  <h2>Then</h2>
+  <p>Drop a recording into the window. It is read in your browser, the rows are shown for you to
+  check, and the ones you keep are inserted into the tab you are on — taking their formatting
+  from the row above, leaving every formula and dropdown alone.</p>
+
+  <footer>
+    <a href="./index.html">Back</a> · <a href="./privacy.html">Privacy</a> ·
+    <a href="./terms.html">Terms</a>
+  </footer>
+</main>
+</body>
+</html>

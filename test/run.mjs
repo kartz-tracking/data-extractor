@@ -14,7 +14,7 @@
  */
 import { spawn } from 'node:child_process';
 
-const SUITES = ['identity.test.mjs', 'worker.test.mjs', 'providers.test.mjs', 'fields.test.mjs'];
+const SUITES = ['identity.test.mjs', 'worker.test.mjs', 'ollama.test.mjs', 'providers.test.mjs', 'fields.test.mjs'];
 
 let failed = 0;
 for (const suite of SUITES) {

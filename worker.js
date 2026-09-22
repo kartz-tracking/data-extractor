@@ -1,5 +1,5 @@
 /**
- * Kartz — the key holder.
+ * Extract Data — the key holder.
  *
  * One job now: keep the model key out of the spreadsheet. The dialog is a page Google serves
  * from googleusercontent.com, and a page cannot hold a secret — anyone who can open the add-on

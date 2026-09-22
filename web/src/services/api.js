@@ -56,14 +56,14 @@ export class ApiError extends Error {
 }
 
 export async function api(path, opts = {}) {
-  if (!base) throw new ApiError(0, 'The Worker address has not been set. Open Kartz → Settings.');
+  if (!base) throw new ApiError(0, 'The Worker address has not been set. Open Settings in the add-on.');
   await ensureAuth();
   const res = await fetch(apiUrl(path), { ...opts, headers: apiHeaders(opts.headers || {}) });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     const message = (body.error && body.error.message) || body.error
       || (res.status === 403
-        ? 'the Worker refused this add-on — check its address in Kartz → Settings'
+        ? 'the Worker refused this add-on — check its address in Settings'
         : `request failed (${res.status})`);
     throw new ApiError(res.status, message, body);
   }

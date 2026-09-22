@@ -150,7 +150,7 @@ function findRosterTab() {
 function readRoster() {
   var sheet = findRosterTab();
   if (!sheet) {
-    return { ok: false, reason: 'No roster tab found. Kartz → Which tabs am I using? to pick one.',
+    return { ok: false, reason: 'No roster tab found. Extensions → Extract Data → Which tabs am I using?',
              tabs: sheetNames() };
   }
   var lastRow = sheet.getLastRow();
@@ -291,6 +291,8 @@ function insertRows(rows, at) {
   return { written: rows.length, from: after + 1, to: after + rows.length, sheet: sheet.getName() };
 }
 
+var LOG_TAB = 'Extract log';
+
 /**
  * One sentence about what just happened, appended to a log tab.
  *
@@ -299,9 +301,9 @@ function insertRows(rows, at) {
  */
 function appendLog(line) {
   var ss = SpreadsheetApp.getActive();
-  var tab = ss.getSheetByName('Kartz log');
+  var tab = ss.getSheetByName(LOG_TAB);
   if (!tab) {
-    tab = ss.insertSheet('Kartz log', ss.getSheets().length);
+    tab = ss.insertSheet(LOG_TAB, ss.getSheets().length);
     tab.getRange(1, 1, 1, 3).setValues([['When', 'Who', 'What']]);
     tab.setFrozenRows(1);
     tab.getRange(1, 1, 1, 3).setFontWeight('bold');

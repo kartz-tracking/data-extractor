@@ -1,0 +1,19 @@
+{
+  "timeZone": "Europe/London",
+  "dependencies": {},
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets.currentonly",
+    "https://www.googleapis.com/auth/script.container.ui",
+    "openid"
+  ],
+  "addOns": {
+    "common": {
+      "name": "Extract Data",
+      "logoUrl": "https://kartz-tracking.github.io/icon-128.png",
+      "useLocaleFromApp": true
+    },
+    "sheets": {}
+  }
+}

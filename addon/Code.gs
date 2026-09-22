@@ -1,9 +1,12 @@
 /**
- * Kartz — read a screen recording into this spreadsheet.
+ * Extract Data — read a screen recording into the spreadsheet you are in.
  *
  * The menu, the window, and the few things the window cannot do for itself. Everything that
  * touches the spreadsheet lives in Sheets.gs; everything that touches the video, the model and
  * the reviewing lives in the dialog, which is a web page.
+ *
+ * Installed from the Marketplace, this runs in every spreadsheet its owner opens; the same file
+ * pasted into one spreadsheet's script runs only there. Nothing below cares which it is.
  *
  * The dialog is modeless: it floats over the spreadsheet and leaves it live underneath, so you
  * can scroll the sheet, click a cell, or switch tabs while it is open. That is the difference
@@ -19,10 +22,19 @@
  * it, and if you can only view it the dialog says so and stops. There are no accounts here.
  */
 
-/** Kartz appears on the menu bar next to Help, and under Extensions. */
+var ADDON_NAME = 'Extract Data';
+
+/**
+ * The menu, under Extensions.
+ *
+ * createAddonMenu rather than createMenu, because that is where Sheets puts an add-on and
+ * where people look for one. It behaves the same in a bound script, so there is one code path
+ * rather than two. This runs before anybody has authorised anything, so it must not touch the
+ * spreadsheet's contents — building a menu is all it does.
+ */
 function onOpen(e) {
   SpreadsheetApp.getUi()
-    .createMenu('Kartz')
+    .createAddonMenu()
     .addItem('Extract a recording', 'showDialog')
     .addSeparator()
     .addItem('Which tabs am I using?', 'showSettings')
@@ -47,7 +59,7 @@ function showDialog() {
   var html = HtmlService.createHtmlOutputFromFile('Dialog')
     .setWidth(760)
     .setHeight(548);
-  SpreadsheetApp.getUi().showModelessDialog(html, 'Kartz');
+  SpreadsheetApp.getUi().showModelessDialog(html, ADDON_NAME);
 }
 
 /** Which tab the roster is on, and which one rows go into. Kept per spreadsheet, not per person. */
@@ -55,7 +67,7 @@ function showSettings() {
   var s = readSettings();
   var ui = SpreadsheetApp.getUi();
   var answer = ui.prompt(
-    'Kartz — the roster tab',
+    ADDON_NAME + ' — the roster tab',
     'Rows are matched against a roster. Which tab is it on?\n\n'
       + 'Now: ' + (s.rosterTab || 'found automatically') + '\n'
       + 'Tabs here: ' + sheetNames().join(', ') + '\n\n'
@@ -64,11 +76,13 @@ function showSettings() {
   if (answer.getSelectedButton() !== ui.Button.OK) return;
   var name = String(answer.getResponseText() || '').trim();
   writeSettings({ rosterTab: name || null });
-  SpreadsheetApp.getActive().toast(name ? 'Roster: ' + name : 'Roster found automatically', 'Kartz', 4);
+  SpreadsheetApp.getActive().toast(name ? 'Roster: ' + name : 'Roster found automatically', ADDON_NAME, 4);
 }
 
 /* ------------------------------------------------------------------- what the dialog asks for */
 
+// Document properties, so each spreadsheet keeps its own roster tab and its own settings even
+// though one installed add-on serves all of them.
 var SETTINGS_KEY = 'kartz.settings';
 
 function readSettings() {
@@ -128,6 +142,6 @@ function showClientId() {
   var claims = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(token.split('.')[1]))
     .getDataAsString());
   Logger.log('SCRIPT_AUD = ' + claims.aud);
-  SpreadsheetApp.getActive().toast(String(claims.aud), 'Kartz — client id', 30);
+  SpreadsheetApp.getActive().toast(String(claims.aud), ADDON_NAME + ' — client id', 30);
   return claims.aud;
 }

@@ -8,7 +8,7 @@
  * There is no password here and nothing to share. The Worker is told who you are by Google,
  * with a signed token made out to this add-on; "Save and test" is what proves it works.
  *
- * Beside them, what Kartz thinks each heading on the current tab means. It is the thing people
+ * Beside them, what the add-on thinks each heading on the current tab means. It is the thing people
  * actually want to check, and the dialog is wide enough to show it without scrolling.
  */
 import { useEffect, useState } from 'react';
@@ -80,7 +80,7 @@ export default function Settings({ sheet, roster, worker, top, onClose }) {
         <section className="dlg__stage">
           <p className="dlg__h">Columns on “{sheet ? sheet.sheet : 'this tab'}”</p>
           <p className="hint">
-            What each heading looks like to Kartz. A column left alone is never written to, so a
+            What each heading looks like to the extractor. A column left alone is never written to, so a
             formula or a total in the middle of the sheet keeps working.
           </p>
           <ul className="cols">

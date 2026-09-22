@@ -191,7 +191,7 @@ export default function Dialog() {
   };
 
   /* ------------------------------------------------------------------------ the chrome */
-  const title = sheet ? sheet.spreadsheet : 'Kartz';
+  const title = sheet ? sheet.spreadsheet : 'Extract Data';
   const at = sheet
     ? `${sheet.sheet} · ${sheet.rows.toLocaleString()} rows · ${sheet.headers.length} columns`
     : 'looking at this tab…';

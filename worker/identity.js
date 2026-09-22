@@ -77,7 +77,7 @@ export async function readIdentity(token) {
   try { claims = part(parts[1]); } catch { throw new HttpError(401, 'that token is malformed.'); }
   if (!ISSUERS.has(claims.iss)) throw new HttpError(401, 'that token did not come from Google.');
   const now = Date.now() / 1000;
-  if (!(claims.exp > now - SKEW)) throw new HttpError(401, 'that token has expired — reopen Kartz.');
+  if (!(claims.exp > now - SKEW)) throw new HttpError(401, 'that token has expired — reopen the add-on.');
   if (claims.iat && claims.iat > now + SKEW) throw new HttpError(401, 'that token is from the future.');
   return claims;
 }
@@ -92,7 +92,7 @@ export async function readIdentity(token) {
 export async function whoIsCalling(request, env) {
   const header = request.headers.get('Authorization') || '';
   const token = /^Bearer (.+)$/i.exec(header.trim());
-  if (!token) throw new HttpError(401, 'this request brought no identity. Reopen Kartz in the spreadsheet.');
+  if (!token) throw new HttpError(401, 'this request brought no identity. Reopen the add-on in the spreadsheet.');
 
   const claims = await readIdentity(token[1]);
   const email = str(claims.email).toLowerCase();

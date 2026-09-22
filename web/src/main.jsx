@@ -9,7 +9,7 @@ import Boundary from './components/shared/Boundary.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <Boundary label="Kartz">
+    <Boundary label="Extract Data">
       <Dialog />
     </Boundary>
   </StrictMode>,

@@ -192,3 +192,52 @@ This repository used to hold a whole spreadsheet application — accounts, a D1 
 browser, an editable grid, imported workbooks. It was retired in favour of living inside Google
 Sheets, which people were using anyway. The code is in the history if it is ever wanted; the
 data it held was exported first.
+
+---
+
+## Publishing it as an add-on
+
+A bound script belongs to one spreadsheet. Installed from the Google Workspace Marketplace, the
+same code appears in **every** spreadsheet its owner opens, and a new one needs no setup at all.
+The code is identical — `Code.gs`, `Sheets.gs`, `Dialog.html` unchanged. What differs:
+
+- the project is **standalone**, not bound to a file;
+- the manifest is `addon/appsscript.marketplace.json`, which adds the `addOns` block;
+- there is **one OAuth client for the add-on**, so `SCRIPT_AUD` is a single value forever.
+
+### The steps
+
+1. **A standalone project.** [script.google.com](https://script.google.com) → New project. Paste
+   in `Code.gs`, `Sheets.gs` and `Dialog` (HTML), and the marketplace manifest. Set its Cloud
+   project (⚙ Project Settings → Google Cloud Platform project) to the same one the consent
+   screen lives in.
+2. **Deploy it.** Deploy → New deployment → **Add-on**. Keep the deployment id; the listing
+   asks for it. A new version later reaches everyone without anybody reinstalling.
+3. **Enable the Marketplace SDK** in that Cloud project, and fill in the app configuration:
+   the deployment id, the icons (`docs/icon-32.png`, `-64`, `-128`, served from the site),
+   a 1280×800 screenshot, a description, and the support, terms and privacy links.
+4. **Visibility.** *Private* skips Google's review but only reaches one Google Workspace domain,
+   which is no use for people on personal Gmail accounts. *Unlisted* — not searchable, install
+   by link — is the one to choose, and Google reviews it before it goes live.
+5. **Install it** from the link, in any spreadsheet, and the menu is under Extensions.
+
+### The thing that must change with it
+
+Today the Worker's gate is "whoever authorised this add-on", which is the same set of people as
+"whoever the spreadsheet is shared with". A published add-on breaks that equivalence: anybody
+with the link can install it, authorise it, and spend the model key. So with a listing,
+`ALLOWED_EMAILS` stops being optional and becomes the real gate:
+
+```bash
+npx wrangler secret put ALLOWED_EMAILS     # the addresses that may use it, comma-separated
+```
+
+The client-id check stays as the second lock: a request must be *from this add-on* and *from
+one of these people*.
+
+### Or, without the review
+
+`SCRIPT_AUD` takes a comma-separated list, so the bound script can simply be pasted into each
+spreadsheet — or the spreadsheet copied, which brings the script with it — and each copy's
+client id added to the list. No review, no listing, and each sheet keeps its own roster tab and
+log. It is the right answer for two or three spreadsheets and the wrong one for twenty.

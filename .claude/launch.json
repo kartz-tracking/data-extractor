@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "data-extractor",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "tools/serve-dialog.mjs"
+      ],
+      "port": 8788
+    }
+  ]
+}

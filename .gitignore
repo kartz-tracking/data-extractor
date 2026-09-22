@@ -1,0 +1,11 @@
+node_modules/
+web/dist/
+.wrangler/
+.DS_Store
+
+# recordings and database dumps: large, and none of them belong in the repository
+*.mov
+*.sql
+_test.mov
+_roster.tsv
+_sheet.txt

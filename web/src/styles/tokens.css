@@ -1,0 +1,141 @@
+/* =========================================================================================
+   Kartz — the design system: liquid glass.
+
+   The data is still the interface. What changed is the material around it. Chrome, sheets,
+   tiles, menus and dialogs are glass: translucent layers over a soft ambient light, with a
+   specular edge along the top and depth from blur rather than from borders. The rows themselves
+   never sit on glass — a grid, a table and a field are solid, because a number has to be read.
+
+   ONE SCALE. Every control snaps to a height, every gap to the spacing scale, every corner to
+   one of four radii.
+
+   COLOUR IS AN IDENTITY, NEVER DECORATION. An alliance owns a hue and wears it wherever it is
+   named. The accent is the one blue that means "do this", and no alliance wears it.
+
+   MOTION IS ONE SPRING. A sheet rising, a tile pressed, a dialog arriving all share one curve, so
+   the app moves like one object. prefers-reduced-motion turns it off.
+   ========================================================================================= */
+
+:root {
+  color-scheme: light;
+
+  /* ---- the ground the glass sits on, and the light behind it */
+  --bg:  #edf1f6;
+  --bg2: #e1e7ef;
+  --ambient1: rgba(10, 108, 240, .20);
+  --ambient2: rgba(122, 79, 214, .16);
+  --ambient3: rgba(11, 125, 105, .14);
+
+  /* ---- solid surfaces: where rows are read */
+  --panel:  #ffffff;
+  --panel2: #f6f8fb;
+  --panel3: #edf1f6;
+  --panel4: #e2e8f0;
+
+  /* ---- glass: where things float */
+  --glass:  rgba(255, 255, 255, .62);
+  --glass2: rgba(255, 255, 255, .42);
+  --glass3: rgba(255, 255, 255, .82);
+  --glassedge:   rgba(255, 255, 255, .85);
+  --glassstroke: rgba(16, 32, 58, .10);
+  --blur: saturate(180%) blur(22px);
+  --blur-strong: saturate(190%) blur(34px);
+
+  --ink:   #0b1420;
+  --ink2:  #34435a;
+  --muted: #5d6c82;
+  --faint: #8a97ab;
+  --line:  rgba(16, 32, 58, .12);
+  --line2: rgba(16, 32, 58, .065);
+  --line3: rgba(16, 32, 58, .20);
+
+  /* ---- accent: the one colour that means "do this" */
+  --accent:  #0a6cf0;
+  --accent2: #2d83f5;
+  --accink:  #ffffff;
+  --accbg:   #e3eefd;
+  --accline: #b3cff8;
+
+  /* ---- state */
+  --ok:   #17804a;  --okbg:   #e1f2e8;  --okline:  #b2dac3;
+  --warn: #8c5a06;  --warnbg: #faefd8;  --warnline:#ead3a2;
+  --bad:  #b3261e;  --badbg:  #fbe5e3;  --badline: #f0c2bd;
+  --info: #1f5fae;  --infobg: #e3edfa;  --infoline:#bfd4f0;
+
+  /* ---- alliances, by position in MAIN_ALLIANCES: 698W, 698S, 698N, 698C. Each clears 4.5:1 as
+         text on the light panel, and none is the accent's blue. */
+  --a0: #0c7bb0;  --a1: #b8520e;  --a2: #0b7d69;  --a3: #7a4fd6;  --aX: #697589;
+
+  /* ---- type: a display face with some character for headings and big numbers, a warm grotesque
+         for everything read, and a mono for what has to line up */
+  --display: Sora, "SF Pro Display", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sans: Figtree, "SF Pro Text", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ---- spacing: seven steps, and nothing between them */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+
+  /* ---- radii: four, and nothing between them */
+  --r1: 8px; --r2: 12px; --r3: 18px; --r4: 26px; --rpill: 999px;
+
+  /* ---- controls: one height per density, so a button and a field on a row agree */
+  --h: 36px; --hlg: 46px; --hsm: 30px;
+
+  /* ---- the frame */
+  --topbar-h: 62px;
+  --row-h: 30px;
+  --gutter: clamp(16px, 2.6vw, 36px);
+  --shade:  rgba(16, 32, 58, .10);
+  --shade2: rgba(16, 32, 58, .22);
+  --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+  --lift: inset 0 1px 0 var(--glassedge), 0 12px 32px -16px var(--shade2);
+
+  /* ---- motion */
+  --spring: cubic-bezier(.32, 1.32, .42, 1);
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+/* Dark, when the device asks for it and nobody chose light here… */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #070b11; --bg2: #0b111a;
+    --ambient1: rgba(76, 155, 255, .22); --ambient2: rgba(150, 110, 255, .16); --ambient3: rgba(62, 216, 174, .12);
+    --panel: #0f151d; --panel2: #141b25; --panel3: #1b2430; --panel4: #25303e;
+    --glass: rgba(24, 32, 45, .58); --glass2: rgba(24, 32, 45, .40); --glass3: rgba(20, 27, 38, .86);
+    --glassedge: rgba(255, 255, 255, .12); --glassstroke: rgba(255, 255, 255, .09);
+    --ink: #e8eef6; --ink2: #b4c0cf; --muted: #8592a5; --faint: #5f6b7d;
+    --line: rgba(255, 255, 255, .10); --line2: rgba(255, 255, 255, .055); --line3: rgba(255, 255, 255, .18);
+    --accent: #4c9bff; --accent2: #6caeff; --accink: #03122b; --accbg: #10233d; --accline: #1f3f68;
+    --ok: #4fcf8a; --okbg: #0f231a; --okline: #1d4230;
+    --warn: #efb34e; --warnbg: #282010; --warnline: #4a3a18;
+    --bad: #ff8278; --badbg: #2d1614; --badline: #512620;
+    --info: #7fb2f0; --infobg: #111d2e; --infoline: #243a57;
+    --a0: #4cc3f2; --a1: #ff9d5f; --a2: #3ed8ae; --a3: #b596ff; --aX: #8b95a3;
+    --shade: rgba(0, 0, 0, .40); --shade2: rgba(0, 0, 0, .62);
+  }
+}
+
+/* …and dark when it was chosen here, whatever the device says. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #070b11; --bg2: #0b111a;
+  --ambient1: rgba(76, 155, 255, .22); --ambient2: rgba(150, 110, 255, .16); --ambient3: rgba(62, 216, 174, .12);
+  --panel: #0f151d; --panel2: #141b25; --panel3: #1b2430; --panel4: #25303e;
+  --glass: rgba(24, 32, 45, .58); --glass2: rgba(24, 32, 45, .40); --glass3: rgba(20, 27, 38, .86);
+  --glassedge: rgba(255, 255, 255, .12); --glassstroke: rgba(255, 255, 255, .09);
+  --ink: #e8eef6; --ink2: #b4c0cf; --muted: #8592a5; --faint: #5f6b7d;
+  --line: rgba(255, 255, 255, .10); --line2: rgba(255, 255, 255, .055); --line3: rgba(255, 255, 255, .18);
+  --accent: #4c9bff; --accent2: #6caeff; --accink: #03122b; --accbg: #10233d; --accline: #1f3f68;
+  --ok: #4fcf8a; --okbg: #0f231a; --okline: #1d4230;
+  --warn: #efb34e; --warnbg: #282010; --warnline: #4a3a18;
+  --bad: #ff8278; --badbg: #2d1614; --badline: #512620;
+  --info: #7fb2f0; --infobg: #111d2e; --infoline: #243a57;
+  --a0: #4cc3f2; --a1: #ff9d5f; --a2: #3ed8ae; --a3: #b596ff; --aX: #8b95a3;
+  --shade: rgba(0, 0, 0, .40); --shade2: rgba(0, 0, 0, .62);
+}
+
+/* A browser without backdrop blur gets solid surfaces rather than unreadable see-through ones. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root, :root[data-theme] { --glass: var(--panel); --glass2: var(--panel2); --glass3: var(--panel); }
+}

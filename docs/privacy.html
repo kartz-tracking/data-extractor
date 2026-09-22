@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy — Extract Data</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f4f6fa; --panel:#fff; --ink:#0b1420; --ink2:#34435a;
+          --muted:#5d6c82; --line:rgba(16,32,58,.12); --accent:#0a6cf0; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0e141c; --panel:#161e29; --ink:#eef3f9; --ink2:#c2cddb; --muted:#8a99ad;
+            --line:rgba(255,255,255,.12); --accent:#5b9bff; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); padding:40px 16px 80px;
+         font:16px/1.65 -apple-system, Segoe UI, Roboto, system-ui, sans-serif; }
+  main { max-width: 680px; margin:0 auto; }
+  h1 { font-size:28px; margin:0 0 4px; letter-spacing:-.01em; }
+  .sub { color:var(--muted); margin:0 0 28px; }
+  h2 { font-size:17px; margin:30px 0 8px; }
+  p, li { color:var(--ink2); }
+  ul { padding-left:20px; }
+  a { color:var(--accent); }
+  footer { margin-top:40px; color:var(--muted); font-size:14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Privacy</h1>
+  <p class="sub">Extract Data, a Google Sheets add-on. Last updated 22 September 2026.</p>
+
+  <h2>What the add-on can see</h2>
+  <p>Only the spreadsheet it is installed in. It is authorised with Google's
+  <code>spreadsheets.currentonly</code> permission, which gives it access to that one file and to
+  no other file in your Google Drive. It also reads your email address, through the standard
+  <code>openid</code> sign-in, for the single purpose described below.</p>
+
+  <h2>What happens to a recording</h2>
+  <p>The video file is opened and decoded in your own browser. It is never uploaded. Still frames
+  sampled from it are sent, over an encrypted connection, to a model provider that reads the
+  names and scores in them. Neither the add-on nor its server keeps the frames or the text after
+  the answer comes back.</p>
+
+  <h2>What is stored</h2>
+  <ul>
+    <li><b>In the spreadsheet:</b> the settings you choose — which tab holds the roster, and the
+      address of the server. Anyone who can open the spreadsheet can see and change these.</li>
+    <li><b>On the server:</b> nothing. It holds no database and writes no logs of your data. It
+      checks that a request carries a valid Google sign-in token for this add-on, passes the
+      request to the model provider, and returns the answer.</li>
+    <li><b>Your email address</b> is read from the Google-signed token to decide whether a request
+      is allowed. It is not stored, shared, or used for anything else.</li>
+  </ul>
+
+  <h2>What is never done</h2>
+  <p>Your data is not sold, rented, or shared with anybody. It is not used for advertising. It is
+  not used to train any model. There is no analytics or tracking of any kind in the add-on.</p>
+
+  <p>Use of information received from Google APIs adheres to the
+  <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services
+  User Data Policy</a>, including the Limited Use requirements.</p>
+
+  <h2>Removing it</h2>
+  <p>Revoke access at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>,
+  or delete the script from the spreadsheet's Extensions → Apps Script. Nothing of yours is held
+  anywhere else, so there is nothing else to delete.</p>
+
+  <h2>Contact</h2>
+  <p>jk06nm04@gmail.com</p>
+
+  <footer><a href="./index.html">Back</a></footer>
+</main>
+</body>
+</html>

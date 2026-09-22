@@ -1,0 +1,28 @@
+name = "data-extractor"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+# If wrangler is logged into more than one Cloudflare account it will ask which one. Put the id
+# here to settle it: `npx wrangler whoami` prints it.
+# account_id = "…"
+
+# Lets the Worker call Cloudflare's own models as env.AI, with no token in the browser. It is
+# also the last provider a question about a tab falls back to, so a deployment with no model
+# key of its own still has one.
+[ai]
+binding = "AI"
+
+# Errors and request logs in the dashboard, which is the only way to see what a refusal said
+# once it has happened to somebody else.
+[observability]
+enabled = true
+
+# Nothing else. The site, the database and the picture store went with the spreadsheet app —
+# the spreadsheet is the database now, and Google holds the files. What is left is the model
+# key, which is the one thing a page cannot hold for itself.
+#
+# Secrets, none of which live in this file:
+#   GEMINI_KEY        required — reading a recording
+#   SCRIPT_AUD        required — the add-on's OAuth client id; the first refusal tells you it
+#   ANTHROPIC_API_KEY optional — asking questions about a tab (or OPENAI_API_KEY)
+#   ALLOWED_EMAILS    optional — a shorter list than the spreadsheet's sharing
